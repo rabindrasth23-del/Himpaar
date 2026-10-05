@@ -7,6 +7,7 @@ Only projects checked in our research. Always read the repository's LICENSE file
 | Need | Project | Licence (as found) | Notes |
 |---|---|---|---|
 | Ledger | pgr0ss/pgledger | MIT | Entire ledger lives in PostgreSQL tables and functions, so ledger writes commit atomically with other writes. Small project: have the AI explain its SQL and test it. Keep licence in `third_party/pgledger/`. |
+| Ledger prerequisite | scoville/pgsql-ulid (vendored inside pgledger repo) | BSD-3-Clause | ULID↔UUID helper SQL functions required by pgledger. Already vendored in pgledger's `vendor/` directory. Keep licence in `third_party/pgsql-ulid/`. |
 | Webhook signing | Standard Webhooks (spec + official JS library) | MIT | HMAC-SHA256, timestamp replay protection, `webhook-id`, `webhook-timestamp`, `webhook-signature` headers. Do not hand-roll signing. |
 | Bikram Sambat dates and fiscal years | SandipGhimire/Nepali-Date-Library-NodeJS — npm package: `nepali-date-library` | MIT | BS calendar data is published about a year ahead; add tests on key dates. |
 | Core stack | Vite, React, React Router, TanStack Query, React Hook Form, Zod, Tailwind CSS v4, @tailwindcss/vite, shadcn/ui, Fastify, @fastify/type-provider-zod, @fastify/cookie, @fastify/cors, @fastify/rate-limit, @fastify/static, Prisma (^7), pdfkit, tsup, Vitest | Mostly MIT or Apache-2.0 | Mainstream. Confirm each LICENSE before adding. |
