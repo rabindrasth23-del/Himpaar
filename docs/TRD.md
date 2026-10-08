@@ -120,7 +120,7 @@ Vitest for unit and API tests (Fastify `inject`). Test list in `AGENTS.md` secti
 Same-origin: Fastify serves both the API (under `/v1`) and the built Vite app (via `@fastify/static`) from **one Render free web service**. No Cloudflare Pages. Dev uses Vite's built-in proxy. Free Postgres that does not expire (for example Neon). Do not use a database that expires after 30 days. Render free tier sleeps when idle and takes up to about a minute to wake, so open it before any demo. Free tiers change; check each pricing page when signing up. Move to paid, backed-up, compliant hosting before any real money or personal data.
 
 ## 16. Environment variables
-`NODE_ENV`, `DATABASE_URL`, `SANDBOX_MODE`, `SESSION_SECRET`, `SIMULATOR_WEBHOOK_SECRET`, `WEB_URL`, `API_URL`, `LOG_LEVEL`, `UNVERIFIED_DEMO_FX_NPR_PER_USD_MICRO`, `UNVERIFIED_DEMO_FEE_BPS`.
+`NODE_ENV`, `PORT`, `DATABASE_URL`, `SANDBOX_MODE`, `SESSION_SECRET`, `SIMULATOR_WEBHOOK_SECRET`, `WEB_URL`, `API_URL`, `LOG_LEVEL`, `UNVERIFIED_DEMO_FX_NPR_PER_USD_MICRO`, `UNVERIFIED_DEMO_FEE_BPS`.
 
 ## 17. Milestones (YC deadline reported as Nov 2, 2026)
 - **Week 1 (Oct 5 to 11):** scaffold, database, auth, API keys, payment link creation, dashboard shell.

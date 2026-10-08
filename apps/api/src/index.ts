@@ -1,3 +1,3 @@
 // apps/api/src/index.ts
-// Himpaar API entry point — placeholder, no application code yet.
-console.log("@himpaar/api placeholder");
+// Re-exports server startup. Use `tsx src/index.ts` or `tsx src/server.ts`.
+import "./server.js";

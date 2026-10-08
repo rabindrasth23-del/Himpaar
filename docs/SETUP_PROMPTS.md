@@ -3,6 +3,7 @@
 Run Prompt 0 first, review the answer, then Prompts 1 to 6 in order. After each prompt, you and Prince run the commands yourselves and read what changed.
 
 **Rules that apply to every prompt below (the prompts repeat the key ones):**
+
 - Confirm package names and APIs from the npm registry or official docs. Never guess.
 - Show every command before running it. If a command fails, show the error and propose a fix; do not skip steps.
 - No global installs unless unavoidable. No secrets in files.
@@ -14,6 +15,7 @@ Run Prompt 0 first, review the answer, then Prompts 1 to 6 in order. After each 
 
 ```
 Read AGENTS.md, then docs/WORKFLOW.md, docs/PRD.md, docs/TRD.md and docs/OPEN_SOURCE.md in full.
+The project is named Himpaar. It was renamed from an older name, so tell me if you find any leftover old-name text.
 Do not write code and do not install anything yet.
 Reply with:
 1. A summary of what we are building, in 8 lines, in your own words.
@@ -39,9 +41,10 @@ Do not add application code yet. Show the folder tree, the commands you ran, and
 ```
 Follow AGENTS.md and docs/TRD.md. Set up apps/api only.
 1. Install and confirm each package on the npm registry before installing:
-   dependencies: fastify, @fastify/cookie, @fastify/cors, @fastify/rate-limit, fastify-type-provider-zod, zod, @prisma/client, argon2, pdfkit, standardwebhooks, and the Bikram Sambat library chosen in docs/OPEN_SOURCE.md (confirm its exact npm name from its README).
+   dependencies: fastify, @fastify/cookie, @fastify/cors, @fastify/rate-limit, @fastify/type-provider-zod, zod, @prisma/client, argon2, pdfkit, standardwebhooks, and the Bikram Sambat library chosen in docs/OPEN_SOURCE.md (confirm its exact npm name from its README).
    devDependencies: typescript, tsx, prisma, vitest, @types/node, @types/pdfkit.
-   Use: pnpm --filter @himpaar/api add <package>. Tell me any package you could not confirm.
+   Use: pnpm --filter @himpaar/api add <package>. Pin exact versions. Tell me any package you could not confirm.
+   If argon2 fails to build on Windows, show me the error and use the approved fallback @node-rs/argon2 from docs/OPEN_SOURCE.md.
 2. Create a Fastify app skeleton: src/app.ts (build function, no listen), src/server.ts (listen), src/config/env.ts (validate all environment variables with Zod, fail fast), src/routes/health.ts (GET /health), src/compliance/nepal.config.ts (UNVERIFIED_ constants only, each with a comment on who must confirm it).
 3. Configure pino logging with secret redaction.
 4. Add scripts: dev, build, start, test, typecheck.
@@ -54,11 +57,13 @@ Do not build payment logic yet. Show commands, the file list, and real output of
 ```
 Follow AGENTS.md and docs/TRD.md sections 4 and 5.
 1. Create docker-compose.yml at the repo root with the official PostgreSQL image (use the current stable major; tell me which and why). If Docker is not installed on my machine, tell me and offer the fallback of a free Neon connection string in .env.
-2. Initialize Prisma in apps/api. Write the first-pass schema from TRD section 4 (BIGINT for all money, currency columns, CHECK constraints for positive amounts, foreign keys, timestamps).
+2. Initialize Prisma in apps/api, following the current official Prisma docs for the version we installed, not memory. Write the first-pass schema from TRD section 4 (BIGINT for all money, currency columns, CHECK constraints for positive amounts, foreign keys, timestamps).
 3. Fetch pgledger from its GitHub repository (pgr0ss/pgledger), read its README and SQL, and tell me its real function names and constraints. Do not guess them.
-4. PRESENT a ledger account design (accounts, transfers per payment, fee, conversion) for my approval. STOP and wait before writing any ledger migration.
-5. After I approve: add pgledger as a raw SQL migration, copy its LICENSE into third_party/pgledger/ with attribution, and add database-level protection so ledger rows cannot be updated or deleted.
-6. Run the migrations and show the output. Write tests that prove an UPDATE and a DELETE on the ledger fail.
+4. Before step 5, tell me how BankEvent.processed_at can work if BankEvent is append-only. Propose one fix: a separate table or row for "processed", or blocking only DELETE and payload changes.
+5. PRESENT a ledger account design (accounts, transfers per payment, fee, conversion) for my approval. STOP and wait before writing any ledger migration.
+6. After I approve: add pgledger as a raw SQL migration, copy its LICENSE into third_party/pgledger/ with attribution, and add database-level protection so ledger rows cannot be updated or deleted.
+7. After adding pgledger, run "prisma migrate dev" again and prove the ledger tables survive. If they do not, put pgledger in its own Postgres schema and propose that.
+8. Run the migrations and show the output. Write tests that prove an UPDATE and a DELETE on the ledger fail.
 Show commands and real output at each step.
 ```
 
@@ -94,9 +99,10 @@ Run a full check and report honestly. Do not fix anything silently.
 1. From a clean state: delete node_modules, run pnpm install, then pnpm typecheck, pnpm lint, pnpm test, pnpm build. Paste the real output.
 2. List every dependency installed in each package with its version and licence. Flag anything that is not MIT, Apache-2.0 or BSD.
 3. Confirm no secrets are in the repository and that .env is ignored.
-4. List every item in the code or docs still marked UNVERIFIED or PENDING.
-5. Run pnpm audit and report the results.
-6. Tell me what is NOT yet working or tested.
+4. Search the whole repository case-insensitively for the old name "virqo" and "vq_" and show me the result. It must be empty.
+5. List every item in the code or docs still marked UNVERIFIED or PENDING.
+6. Run pnpm audit and report the results.
+7. Tell me what is NOT yet working or tested.
 Then stop. Do not start building features until I approve.
 ```
 

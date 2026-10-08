@@ -1,3 +1,6 @@
+# GitHub CLI (portable, not part of project)
+gh_cli/
+
 # Dependencies
 node_modules/
 
