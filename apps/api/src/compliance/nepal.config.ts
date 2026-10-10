@@ -22,6 +22,13 @@ export const UNVERIFIED_DEMO_FX_NPR_PER_USD_MICRO = 134_250_000n; // ~134.25 NPR
 // Who must confirm: accountant, IRD
 export const UNVERIFIED_TDS_RATE_BPS = 0n; // TDS on foreign remittance — unknown, placeholder zero
 
+// --- Rounding rules ---
+// Who must confirm: accountant
+// Fee rounds UP so the platform never undercharges.
+export const UNVERIFIED_FEE_ROUNDING = "ceil" as const;
+// NPR conversion rounds DOWN so the merchant never gets more than the conversion warrants.
+export const UNVERIFIED_NPR_ROUNDING = "floor" as const;
+
 // --- Document ---
 // Who must confirm: bank partner, lawyer
 export const UNVERIFIED_DOCUMENT_TITLE = "Himpaar Settlement Advice (simulated)";

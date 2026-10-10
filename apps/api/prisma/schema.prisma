@@ -1,0 +1,244 @@
+// Himpaar Prisma schema — TRD §4 data model
+// Money: BIGINT (BigInt) for all amounts. Currency column on every money row.
+// pgledger tables are in their own schema, not managed by Prisma.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─── Auth & Merchant ───────────────────────────────────────────────
+
+model Merchant {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  password  String   // argon2 hash
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  sessions         Session[]
+  kycRecords       KycRecord[]
+  apiKeys          ApiKey[]
+  paymentLinks     PaymentLink[]
+  webhookEndpoints WebhookEndpoint[]
+  auditLogs        AuditLog[]
+  idempotencyRecords IdempotencyRecord[]
+
+  @@map("merchants")
+}
+
+model Session {
+  id             String   @id @default(cuid())
+  merchantId     String   @map("merchant_id")
+  tokenHash      String   @map("token_hash") // SHA-256 of 32-byte random token
+  absoluteExpiry DateTime @map("absolute_expiry") // 7 days from creation
+  idleExpiry     DateTime @map("idle_expiry")     // 24 hours from last activity
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  merchant Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
+  @@index([tokenHash])
+  @@map("sessions")
+}
+
+model KycRecord {
+  id         String   @id @default(cuid())
+  merchantId String   @map("merchant_id")
+  status     String   // simulated: "approved"
+  data       Json     // simulated KYC data
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  merchant Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
+  @@map("kyc_records")
+}
+
+model ApiKey {
+  id         String    @id @default(cuid())
+  merchantId String    @map("merchant_id")
+  prefix     String    // first 8 chars of key, for identification
+  sha256Hash String    @map("sha256_hash") // SHA-256 hash of the full key
+  revokedAt  DateTime? @map("revoked_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+
+  merchant Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
+  @@index([sha256Hash])
+  @@map("api_keys")
+}
+
+// ─── Payments ──────────────────────────────────────────────────────
+
+model PaymentLink {
+  id         String    @id @default(cuid())
+  merchantId String    @map("merchant_id")
+  token      String    @unique // random, unguessable, at least 128 bits
+  amount     BigInt    // minor units (cents)
+  currency   String    // ISO 4217 (e.g. "USD")
+  status     String    @default("open") // open, paid, expired, cancelled
+  expiresAt  DateTime  @map("expires_at")
+  paidAt     DateTime? @map("paid_at")
+  expiredAt  DateTime? @map("expired_at")
+  cancelledAt DateTime? @map("cancelled_at")
+  description String?
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+
+  merchant Merchant  @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  payments Payment[]
+
+  @@map("payment_links")
+}
+
+model Payment {
+  id            String    @id @default(cuid())
+  paymentLinkId String    @map("payment_link_id")
+  method        String?   // simulated payment method
+  status        String    @default("created") // created, pending, succeeded, failed, expired
+  pendingAt     DateTime? @map("pending_at")
+  succeededAt   DateTime? @map("succeeded_at")
+  failedAt      DateTime? @map("failed_at")
+  expiredAt     DateTime? @map("expired_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  paymentLink PaymentLink @relation(fields: [paymentLinkId], references: [id], onDelete: Cascade)
+  settlements Settlement[]
+
+  @@map("payments")
+}
+
+// ─── Bank Events (insert-only) ─────────────────────────────────────
+
+model BankEvent {
+  id          String   @id @default(cuid())
+  eventId     String   @unique @map("event_id") // deduplication key
+  payloadHash String   @map("payload_hash")     // SHA-256 of payload
+  payload     Json
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  result BankEventResult?
+
+  @@map("bank_events")
+}
+
+model BankEventResult {
+  id          String   @id @default(cuid())
+  eventId     String   @unique @map("event_id")
+  processedAt DateTime @map("processed_at")
+  outcome     String   // "succeeded", "failed", "duplicate"
+  error       String?
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  bankEvent BankEvent @relation(fields: [eventId], references: [eventId], onDelete: Cascade)
+
+  @@map("bank_event_results")
+}
+
+// ─── Settlement ────────────────────────────────────────────────────
+
+model Settlement {
+  id            String    @id @default(cuid())
+  paymentId     String    @map("payment_id")
+  grossUsdCents BigInt    @map("gross_usd_cents")
+  feeUsdCents   BigInt    @map("fee_usd_cents")
+  rateMicro     BigInt    @map("rate_micro")     // NPR per USD × 1,000,000
+  netNprPaisa   BigInt    @map("net_npr_paisa")
+  currency      String    @default("USD")        // gross currency
+  status        String    @default("pending")    // pending, settled, failed, reversed
+  settledAt     DateTime? @map("settled_at")
+  failedAt      DateTime? @map("failed_at")
+  reversedAt    DateTime? @map("reversed_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  payment   Payment    @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  documents Document[]
+
+  @@map("settlements")
+}
+
+// ─── Documents ─────────────────────────────────────────────────────
+
+model Document {
+  id           String  @id @default(cuid())
+  settlementId String  @map("settlement_id")
+  json         Json    // settlement advice JSON
+  pdfPath      String? @map("pdf_path")
+  sha256       String  // SHA-256 of the JSON
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  settlement Settlement @relation(fields: [settlementId], references: [id], onDelete: Cascade)
+
+  @@map("documents")
+}
+
+// ─── Webhooks ──────────────────────────────────────────────────────
+
+model WebhookEndpoint {
+  id         String    @id @default(cuid())
+  merchantId String    @map("merchant_id")
+  url        String
+  secret     String    // signing secret
+  createdAt  DateTime  @default(now()) @map("created_at")
+
+  merchant   Merchant           @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  deliveries WebhookDelivery[]
+
+  @@map("webhook_endpoints")
+}
+
+model WebhookDelivery {
+  id            String    @id @default(cuid())
+  endpointId    String    @map("endpoint_id")
+  event         String    // event type
+  payload       Json
+  attempt       Int       @default(1)
+  status        String    @default("pending") // pending, delivered, failed, dead
+  nextAttemptAt DateTime? @map("next_attempt_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  endpoint WebhookEndpoint @relation(fields: [endpointId], references: [id], onDelete: Cascade)
+
+  @@map("webhook_deliveries")
+}
+
+// ─── Idempotency ───────────────────────────────────────────────────
+
+model IdempotencyRecord {
+  id           String   @id @default(cuid())
+  merchantId   String   @map("merchant_id")
+  key          String   // Idempotency-Key header value
+  requestHash  String   @map("request_hash") // SHA-256 of request body
+  response     Json     // stored response
+  expiresAt    DateTime @map("expires_at")   // 24 hours
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  merchant Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
+  @@unique([merchantId, key])
+  @@map("idempotency_records")
+}
+
+// ─── Audit ─────────────────────────────────────────────────────────
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  merchantId String?  @map("merchant_id")
+  action     String   // "login", "logout", "api_key_create", "api_key_revoke", etc.
+  details    Json?
+  ipAddress  String?  @map("ip_address")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  merchant Merchant? @relation(fields: [merchantId], references: [id], onDelete: SetNull)
+
+  @@index([merchantId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}

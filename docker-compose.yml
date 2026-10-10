@@ -1,0 +1,26 @@
+# Himpaar local development database
+# Usage: docker compose up -d
+# Neon fallback: skip this and set DATABASE_URL / DATABASE_MIGRATE_URL to your Neon connection string
+
+services:
+  postgres:
+    image: postgres:18-alpine
+    container_name: himpaar-postgres
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: himpaar
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./docker/init-app-role.sql:/docker-entrypoint-initdb.d/01-init-app-role.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d himpaar"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  pgdata:

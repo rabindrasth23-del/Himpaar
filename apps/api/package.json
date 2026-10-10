@@ -7,7 +7,10 @@
     "dev": "tsx watch src/index.ts",
     "build": "tsc --noEmit",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "db:migrate": "prisma migrate deploy",
+    "db:generate": "prisma generate",
+    "db:setup-role": "tsx scripts/setup-app-role.ts"
   },
   "dependencies": {
     "@fastify/cookie": "^11.1.2",
@@ -17,17 +20,21 @@
     "@fastify/type-provider-zod": "^1.0.0",
     "@himpaar/shared": "workspace:*",
     "@node-rs/argon2": "^2.2.1",
-    "@prisma/client": "^7.10.0",
+    "@prisma/adapter-pg": "7.10.0",
+    "@prisma/client": "7.10.0",
     "fastify": "^5.12.5",
     "nepali-date-library": "^1.1.16",
     "pdfkit": "^0.20.2",
+    "pg": "^8.23.1",
     "standardwebhooks": "^1.1.1",
     "zod": "^4.6.5"
   },
   "devDependencies": {
     "@types/pdfkit": "^0.17.6",
+    "@types/pg": "^8.23.1",
+    "dotenv": "^18.0.7",
     "pino-pretty": "^13.2.0",
-    "prisma": "^7.10.0",
+    "prisma": "7.10.0",
     "tsx": "^4.23.15",
     "vitest": "^5.0.3"
   }
