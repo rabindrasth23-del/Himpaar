@@ -29,6 +29,14 @@ if (TEST_URL === MAIN_URL || TEST_URL === MIGRATE_URL) {
     "DATABASE_TEST_URL must differ from DATABASE_URL and DATABASE_MIGRATE_URL."
   );
 }
+{
+  const dbName = new URL(TEST_URL).pathname.replace(/^\//, "");
+  if (!dbName.endsWith("_test")) {
+    throw new Error(
+      `DATABASE_TEST_URL database name must end with '_test' (got '${dbName}').`
+    );
+  }
+}
 
 // ── Helpers ───────────────────────────────────────────────────────
 let ownerPool: pg.Pool; // neondb_owner — full rights
