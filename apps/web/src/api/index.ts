@@ -11,7 +11,7 @@ export type { HimpaarApi } from "./types.ts";
 export { HimpaarApiError } from "./types.ts";
 
 export const API_MODE: "mock" | "real" = import.meta.env.VITE_API_MODE === "real" ? "real" : "mock";
-export const API_URL: string = import.meta.env.VITE_API_URL ?? "";
+export const API_URL: string = import.meta.env.VITE_API_BASE ?? import.meta.env.VITE_API_URL ?? "";
 
 /** Sandbox-only UI (outcome buttons, sandbox controls). The whole MVP is sandbox. */
 export const SANDBOX_MODE = import.meta.env.VITE_SANDBOX_MODE !== "false";
