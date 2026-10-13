@@ -1,35 +1,42 @@
-# Himpaar MVP: project folder
+# Himpaar
 
-**Status:** nothing is built yet. This is a sandbox MVP with fake money. Nepal only.
+**Sandbox MVP. All payments are simulated. No real money moves.** Nepal only.
+
+Himpaar is software that helps Nepali IT companies, agencies and freelancers collect payments from foreign clients through a simulated partner bank. This phase is a sandbox MVP with fake money. Nothing real moves. No bank partnership, licence or live payment exists yet.
 
 ## Folder map
 
 ```
 himpaar/
-  README.md             this file
-  AGENTS.md             standing rules for Antigravity and Claude (read first)
+  apps/
+    api/                Fastify API, Prisma schema, compliance module, simulator
+    web/                Vite + React dashboard and hosted payment page
+  packages/
+    sdk/                @himpaar/sdk (create payment link, verifyWebhook)
+    shared/             Zod schemas and types shared by api, web, sdk
+  brand/                Brand guidelines and visual assets
   docs/
-    WORKFLOW.md         core concept, app layout, end-to-end workflow, 2-minute demo script
-    PRD.md              product requirements, scope, metrics, open questions
-    TRD.md              technical design: data model, API, security, tests, hosting
-    OPEN_SOURCE.md      approved open-source projects, licences, selection rules
-    SETUP_PROMPTS.md    copy-paste prompts to set up backend, frontend, SDK and packages
+    WORKFLOW.md         Core concept, app layout, end-to-end workflow, demo script
+    PRD.md              Product requirements, scope, metrics, open questions
+    TRD.md              Technical design: data model, API, security, tests, hosting
+    OPEN_SOURCE.md      Approved open-source projects, licences, selection rules
+    DESIGN.md           Design tokens and component system
+  third_party/          Licences and attribution for third-party libraries
+  AGENTS.md             Standing rules and truthfulness guidelines
 ```
 
-Code folders (`apps/api`, `apps/web`, `packages/sdk`, `packages/shared`) do not exist yet. Prompt 1 in `docs/SETUP_PROMPTS.md` creates them.
+## How to run
 
-## How to start
+1. Install dependencies:
+   ```bash
+   pnpm install
+   ```
 
-1. Open the `himpaar` folder as the workspace in Antigravity.
-2. Check in Antigravity's own documentation how project rules are loaded. We have not verified that it reads `AGENTS.md` automatically. Prompt 0 tells it to read the file explicitly, so this is covered either way.
-3. Paste Prompt 0, then Prompts 1 to 6 from `docs/SETUP_PROMPTS.md`, one at a time. Review each answer before the next.
-4. After each prompt, you and Prince run the commands yourselves and read the changes.
+2. Start development servers:
+   ```bash
+   pnpm dev
+   ```
 
-## Two different "sandboxes"
+## Rules and Compliance
 
-- **Our MVP sandbox:** a demo with fake money. We build it now, for YC and the bank.
-- **NRB Regulatory Sandbox:** NRB's supervised program for testing with real merchants. Phase two. It requires a written bank partner and has its own criteria (see `docs/PRD.md`, section 9).
-
-## Before relying on any number or rule
-
-Every figure about tax, fees, licences, rates or NRB rules is **unverified** until an accountant, the bank, or an official NRB/IRD document confirms it. See `docs/PRD.md`, section 11.
+Every figure about tax, fees, licences, rates or NRB rules is **simulated / unverified** until an accountant, the bank, or an official NRB/IRD document confirms it.
