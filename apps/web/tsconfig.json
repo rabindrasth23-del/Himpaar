@@ -9,7 +9,10 @@
     "rootDir": "src",
     "declaration": false,
     "declarationMap": false,
-    "verbatimModuleSyntax": true
+    "verbatimModuleSyntax": true,
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
+    "types": ["vite/client"]
   },
   "include": ["src"]
 }
