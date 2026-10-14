@@ -1,7 +1,15 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "pnpm --filter @himpaar/web exec vite build",
-  "outputDirectory": "apps/web/dist",
+  "services": {
+    "api": {
+      "root": "apps/api",
+      "framework": "fastify"
+    },
+    "web": {
+      "root": "apps/web",
+      "framework": "vite"
+    }
+  },
   "headers": [
     {
       "source": "/(.*)",
@@ -15,8 +23,16 @@
   ],
   "rewrites": [
     {
+      "source": "/health",
+      "destination": { "service": "api" }
+    },
+    {
+      "source": "/v1/:path(.*)",
+      "destination": { "service": "api" }
+    },
+    {
       "source": "/(.*)",
-      "destination": "/index.html"
+      "destination": { "service": "web" }
     }
   ]
 }
