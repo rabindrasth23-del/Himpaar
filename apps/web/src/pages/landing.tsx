@@ -29,7 +29,7 @@ function Reveal({ children, className = "", delay = 0 }: { children: ReactNode; 
     const el = ref.current;
     if (!el) return;
     const obs = new IntersectionObserver(
-      ([e]) => { if (e.isIntersecting) { setVisible(true); obs.disconnect(); } },
+      ([e]) => { if (e?.isIntersecting) { setVisible(true); obs.disconnect(); } },
       { threshold: 0.15 }
     );
     obs.observe(el);
@@ -61,7 +61,7 @@ function Globe() {
     const el = canvasRef.current?.parentElement;
     if (!el) return;
     const obs = new IntersectionObserver(
-      ([e]) => setInView(e.isIntersecting),
+      ([e]) => setInView(e?.isIntersecting ?? false),
       { threshold: 0.1 }
     );
     obs.observe(el);
@@ -99,11 +99,11 @@ function Globe() {
         { location: [-33.9, 151.2], size: 0.04 }, // Sydney
         { location: [52.5, 13.4], size: 0.04 },   // Berlin
       ],
-      onRender: (state) => {
+      onRender: (state: Record<string, number>) => {
         state.phi = phi.current;
         phi.current += 0.003;
       },
-    });
+    } as Parameters<typeof createGlobe>[1]);
 
     return () => globe.destroy();
   }, [inView]);
@@ -215,7 +215,7 @@ export function LandingPage() {
   const tabLabels = ["Create payment link", "Verify webhook"];
 
   function copyCode(idx: number) {
-    navigator.clipboard.writeText(snippets[idx]);
+    navigator.clipboard.writeText(snippets[idx] ?? "");
     setCopiedIdx(idx);
     setTimeout(() => setCopiedIdx(null), 2000);
   }

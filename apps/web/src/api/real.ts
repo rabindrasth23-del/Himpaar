@@ -75,7 +75,7 @@ export function createRealApi(baseUrl: string): HimpaarApi {
     },
     login: (input) => request("POST", "/auth/login", SessionSchema, input),
     signup: (input) => request("POST", "/auth/signup", SessionSchema, input),
-    logout: () => request("POST", "/auth/logout", null, {}),
+    logout: () => request("POST", "/auth/logout", null, {}) as Promise<void>,
     submitKyc: (input) => request("POST", "/kyc", MerchantSchema, input),
 
     listPaymentLinks: async () => (await request("GET", "/payment-links", listOf(PaymentLinkSchema))).data,
@@ -92,10 +92,10 @@ export function createRealApi(baseUrl: string): HimpaarApi {
 
     listApiKeys: async () => (await request("GET", "/api-keys", listOf(ApiKeySchema))).data,
     createApiKey: (input) => request("POST", "/api-keys", CreatedApiKeySchema, input),
-    revokeApiKey: (id) => request("DELETE", `/api-keys/${encodeURIComponent(id)}`, null),
+    revokeApiKey: (id) => request("DELETE", `/api-keys/${encodeURIComponent(id)}`, null) as Promise<void>,
     listWebhookEndpoints: async () => (await request("GET", "/webhook-endpoints", listOf(WebhookEndpointSchema))).data,
     createWebhookEndpoint: (input) => request("POST", "/webhook-endpoints", CreatedWebhookEndpointSchema, input),
-    deleteWebhookEndpoint: (id) => request("DELETE", `/webhook-endpoints/${encodeURIComponent(id)}`, null),
+    deleteWebhookEndpoint: (id) => request("DELETE", `/webhook-endpoints/${encodeURIComponent(id)}`, null) as Promise<void>,
     listWebhookDeliveries: async () =>
       (await request("GET", "/webhook-deliveries", listOf(WebhookDeliverySchema))).data,
     redeliverWebhook: (id) =>
