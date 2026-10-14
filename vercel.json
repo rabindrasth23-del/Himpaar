@@ -1,13 +1,7 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "services": {
-    "web": {
-      "root": "apps/web"
-    },
-    "api": {
-      "root": "apps/api"
-    }
-  },
+  "buildCommand": "pnpm --filter @himpaar/web exec vite build",
+  "outputDirectory": "apps/web/dist",
   "headers": [
     {
       "source": "/(.*)",
@@ -21,34 +15,8 @@
   ],
   "rewrites": [
     {
-      "source": "/health",
-      "destination": {
-        "service": "api"
-      }
-    },
-    {
-      "source": "/v1/health",
-      "destination": {
-        "service": "api"
-      }
-    },
-    {
-      "source": "/api/(.*)",
-      "destination": {
-        "service": "api"
-      }
-    },
-    {
-      "source": "/v1/(.*)",
-      "destination": {
-        "service": "api"
-      }
-    },
-    {
       "source": "/(.*)",
-      "destination": {
-        "service": "web"
-      }
+      "destination": "/index.html"
     }
   ]
 }
