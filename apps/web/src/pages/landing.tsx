@@ -1,6 +1,5 @@
 import { Link } from "react-router";
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import createGlobe from "cobe";
 
 /* ────────────────────────────────────────────────────────────
    Himpaar Landing Page
@@ -51,70 +50,65 @@ function Reveal({ children, className = "", delay = 0 }: { children: ReactNode; 
   );
 }
 
-// ── Cobe Globe (lazy, pauses off-screen) ────────────────────
+// ── Static Globe (SVG, no dependencies) ─────────────────────
 function Globe() {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [inView, setInView] = useState(false);
-  const phi = useRef(0);
-
-  useEffect(() => {
-    const el = canvasRef.current?.parentElement;
-    if (!el) return;
-    const obs = new IntersectionObserver(
-      ([e]) => setInView(e?.isIntersecting ?? false),
-      { threshold: 0.1 }
-    );
-    obs.observe(el);
-    return () => obs.disconnect();
-  }, []);
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas || !inView) return;
-
-    // Check reduced motion
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      return; // static fallback handled by CSS
-    }
-
-    const globe = createGlobe(canvas, {
-      devicePixelRatio: 2,
-      width: 600,
-      height: 600,
-      phi: 0,
-      theta: 0.25,
-      dark: 0,
-      diffuse: 1.2,
-      mapSamples: 16000,
-      mapBrightness: 4,
-      baseColor: [0.92, 0.93, 0.97],
-      markerColor: [0.314, 0.286, 0.933], // #5049EE
-      glowColor: [0.88, 0.89, 0.95],
-      markers: [
-        { location: [27.7, 85.3], size: 0.08 },  // Kathmandu
-        { location: [40.7, -74.0], size: 0.05 },  // New York
-        { location: [51.5, -0.1], size: 0.05 },   // London
-        { location: [35.7, 139.7], size: 0.05 },  // Tokyo
-        { location: [1.3, 103.8], size: 0.05 },   // Singapore
-        { location: [-33.9, 151.2], size: 0.04 }, // Sydney
-        { location: [52.5, 13.4], size: 0.04 },   // Berlin
-      ],
-      onRender: (state: Record<string, number>) => {
-        state.phi = phi.current;
-        phi.current += 0.003;
-      },
-    } as Parameters<typeof createGlobe>[1]);
-
-    return () => globe.destroy();
-  }, [inView]);
-
   return (
-    <canvas
-      ref={canvasRef}
+    <svg
+      viewBox="0 0 400 400"
       className="h-[300px] w-[300px] sm:h-[400px] sm:w-[400px] lg:h-[500px] lg:w-[500px]"
-      style={{ contain: "layout paint size", maxWidth: "100%" }}
       aria-hidden="true"
-    />
+    >
+      <defs>
+        <radialGradient id="globe-bg" cx="45%" cy="40%" r="50%">
+          <stop offset="0%" stopColor="#e8e9f3" />
+          <stop offset="100%" stopColor="#c8cae0" />
+        </radialGradient>
+        <radialGradient id="globe-glow" cx="50%" cy="50%" r="55%">
+          <stop offset="85%" stopColor="transparent" />
+          <stop offset="100%" stopColor="#e0e1ef" stopOpacity="0.4" />
+        </radialGradient>
+        <clipPath id="globe-clip">
+          <circle cx="200" cy="200" r="170" />
+        </clipPath>
+      </defs>
+      {/* Globe body */}
+      <circle cx="200" cy="200" r="170" fill="url(#globe-bg)" />
+      {/* Grid lines */}
+      <g clipPath="url(#globe-clip)" opacity="0.2" fill="none" stroke="#8b8fa8" strokeWidth="0.7">
+        {/* Latitude lines */}
+        <ellipse cx="200" cy="120" rx="160" ry="20" />
+        <ellipse cx="200" cy="160" rx="165" ry="35" />
+        <ellipse cx="200" cy="200" rx="170" ry="45" />
+        <ellipse cx="200" cy="240" rx="165" ry="35" />
+        <ellipse cx="200" cy="280" rx="160" ry="20" />
+        {/* Longitude arcs */}
+        <ellipse cx="200" cy="200" rx="45" ry="170" />
+        <ellipse cx="200" cy="200" rx="100" ry="170" />
+        <ellipse cx="200" cy="200" rx="140" ry="170" />
+        <ellipse cx="200" cy="200" rx="170" ry="170" />
+      </g>
+      {/* Landmass hints (simplified) */}
+      <g clipPath="url(#globe-clip)" opacity="0.12" fill="#5049EE">
+        <ellipse cx="250" cy="160" rx="50" ry="30" />
+        <ellipse cx="280" cy="200" rx="30" ry="40" />
+        <ellipse cx="180" cy="180" rx="45" ry="25" />
+        <ellipse cx="140" cy="220" rx="25" ry="35" />
+      </g>
+      {/* Kathmandu marker (primary) */}
+      <circle cx="270" cy="175" r="6" fill="#5049EE" opacity="0.9">
+        <animate attributeName="r" values="6;9;6" dur="2s" repeatCount="indefinite" />
+        <animate attributeName="opacity" values="0.9;0.4;0.9" dur="2s" repeatCount="indefinite" />
+      </circle>
+      <circle cx="270" cy="175" r="3" fill="#5049EE" />
+      {/* Other city markers */}
+      <circle cx="130" cy="150" r="3" fill="#5049EE" opacity="0.5" />
+      <circle cx="170" cy="155" r="3" fill="#5049EE" opacity="0.5" />
+      <circle cx="310" cy="160" r="3" fill="#5049EE" opacity="0.5" />
+      <circle cx="290" cy="220" r="2.5" fill="#5049EE" opacity="0.4" />
+      <circle cx="150" cy="280" r="2.5" fill="#5049EE" opacity="0.3" />
+      {/* Glow */}
+      <circle cx="200" cy="200" r="180" fill="url(#globe-glow)" />
+    </svg>
   );
 }
 
