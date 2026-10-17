@@ -11,6 +11,8 @@ import { getEnv } from "./config/env.js";
 import healthRoute from "./routes/health.js";
 import authRoutes from "./routes/auth.js";
 import paymentLinkRoutes from "./routes/payment-links.js";
+import simulateRoutes from "./routes/simulate.js";
+import dashboardRoutes from "./routes/dashboard.js";
 import { csrfCheck } from "./middleware/csrf.js";
 import { errorHandler } from "./lib/errors.js";
 
@@ -71,6 +73,8 @@ export async function buildApp() {
   await app.register(healthRoute);
   await app.register(authRoutes);
   await app.register(paymentLinkRoutes);
+  await app.register(simulateRoutes);
+  await app.register(dashboardRoutes);
 
   return app;
 }
