@@ -9,6 +9,10 @@ import {
 } from "@fastify/type-provider-zod";
 import { getEnv } from "./config/env.js";
 import healthRoute from "./routes/health.js";
+import authRoutes from "./routes/auth.js";
+import paymentLinkRoutes from "./routes/payment-links.js";
+import { csrfCheck } from "./middleware/csrf.js";
+import { errorHandler } from "./lib/errors.js";
 
 /**
  * Build and configure the Fastify application instance.
@@ -42,6 +46,9 @@ export async function buildApp() {
   app.setValidatorCompiler(validatorCompiler);
   app.setSerializerCompiler(serializerCompiler);
 
+  // Unified error handler
+  app.setErrorHandler(errorHandler);
+
   // Register plugins
   await app.register(cookie, {
     secret: env.SESSION_SECRET,
@@ -57,8 +64,14 @@ export async function buildApp() {
     timeWindow: "1 minute",
   });
 
+  // CSRF protection on all state-changing requests
+  app.addHook("onRequest", csrfCheck);
+
   // Register routes
   await app.register(healthRoute);
+  await app.register(authRoutes);
+  await app.register(paymentLinkRoutes);
 
   return app;
 }
+
