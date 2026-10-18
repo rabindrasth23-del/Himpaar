@@ -186,33 +186,44 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
     return reply.status(204).send();
   });
 
-  // GET /v1/auth/me
-  app.get("/v1/auth/me", {
-    preHandler: [requireAuth],
-  }, async (request, _reply) => {
+  // Shared merchant serialization for /auth/me and /merchant
+  async function loadMerchantDto(merchantId: string) {
     const prisma = getPrisma();
-    const merchant = await prisma.merchant.findUniqueOrThrow({ where: { id: request.merchantId! } });
-
+    const merchant = await prisma.merchant.findUniqueOrThrow({ where: { id: merchantId } });
     const kyc = await prisma.kycRecord.findFirst({
       where: { merchantId: merchant.id },
       orderBy: { createdAt: "desc" },
     });
-
+    const data =
+      kyc?.data && typeof kyc.data === "object" && !Array.isArray(kyc.data)
+        ? (kyc.data as Record<string, unknown>)
+        : null;
     return {
-      user: { id: merchant.id, email: merchant.email },
-      merchant: {
+      email: merchant.email,
+      dto: {
         id: merchant.id,
         name: merchant.name,
-        registration_number: kyc?.data && typeof kyc.data === "object" && "registration_number" in (kyc.data as Record<string, unknown>)
-          ? String((kyc.data as Record<string, unknown>).registration_number)
-          : null,
-        pan_vat: kyc?.data && typeof kyc.data === "object" && "pan_vat" in (kyc.data as Record<string, unknown>)
-          ? String((kyc.data as Record<string, unknown>).pan_vat)
-          : null,
-        kyc_status: kyc ? "approved_sandbox" as const : "not_submitted" as const,
+        registration_number: data && "registration_number" in data ? String(data.registration_number) : null,
+        pan_vat: data && "pan_vat" in data ? String(data.pan_vat) : null,
+        kyc_status: kyc ? ("approved_sandbox" as const) : ("not_submitted" as const),
         created_at: merchant.createdAt.toISOString(),
       },
     };
+  }
+
+  // GET /v1/auth/me
+  app.get("/v1/auth/me", {
+    preHandler: [requireAuth],
+  }, async (request, _reply) => {
+    const { email, dto } = await loadMerchantDto(request.merchantId!);
+    return { user: { id: dto.id, email }, merchant: dto };
+  });
+
+  // GET /v1/merchant
+  app.get("/v1/merchant", {
+    preHandler: [requireAuth],
+  }, async (request, _reply) => {
+    return (await loadMerchantDto(request.merchantId!)).dto;
   });
 
   // POST /v1/kyc — sandbox: always approves immediately

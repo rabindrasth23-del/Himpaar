@@ -20,10 +20,7 @@ import { getPrisma } from "../config/prisma.js";
 import { getEnv } from "../config/env.js";
 import { sha256 } from "../lib/crypto.js";
 import { HimpaarError } from "../lib/errors.js";
-import {
-  UNVERIFIED_DOCUMENT_TITLE,
-  UNVERIFIED_DOCUMENT_FOOTER,
-} from "../compliance/nepal.config.js";
+import { buildDocumentJson } from "../lib/document.js";
 
 /**
  * Fee calculation: gross × feeBps / 10_000.
@@ -58,16 +55,16 @@ const simulateRoutes: FastifyPluginAsync = async (fastify) => {
   app.post("/v1/public/payment-links/:token/simulate", {
     schema: {
       params: z.object({ token: z.string() }),
-      body: z.object({
-        input: SimulateInputSchema,
-        eventId: z.string().uuid(),
+      // Flat body: { method, outcome, event_id } — matches the web client (TRD §7).
+      body: SimulateInputSchema.extend({
+        event_id: z.string().min(8).max(128),
       }),
     },
   }, async (request, reply) => {
     const prisma = getPrisma();
     const env = getEnv();
     const { token } = request.params;
-    const { input, eventId } = request.body;
+    const { event_id: eventId, ...input } = request.body;
 
     // 1. Look up payment link
     const link = await prisma.paymentLink.findUnique({
@@ -89,10 +86,13 @@ const simulateRoutes: FastifyPluginAsync = async (fastify) => {
 
     const existingEvent = await prisma.bankEvent.findUnique({ where: { eventId } });
     if (existingEvent) {
-      // Already processed — return the cached result
+      // Already processed — return the stored outcome
       const result = await prisma.bankEventResult.findUnique({ where: { eventId } });
+      if (!result) {
+        throw new HimpaarError(409, "EVENT_IN_PROGRESS", "This event is still being processed.");
+      }
       return reply.status(200).send({
-        payment_status: result?.outcome ?? "duplicate",
+        payment_status: result.outcome,
         event_id: eventId,
       });
     }
@@ -148,30 +148,31 @@ const simulateRoutes: FastifyPluginAsync = async (fastify) => {
         },
       });
 
-      // 6. Document (simulated settlement advice)
-      const docJson = {
-        title: UNVERIFIED_DOCUMENT_TITLE,
-        footer: UNVERIFIED_DOCUMENT_FOOTER,
-        merchant_name: link.merchant.name,
-        merchant_pan_vat: null,
-        payer_name: "Simulated Payer",
-        payer_country: "US",
-        reference: `PL-${link.id.slice(-8).toUpperCase()}`,
-        gross_usd: grossCents.toString(),
-        fee_usd: feeCents.toString(),
-        fee_bps: Number(feeBps),
-        net_usd: netUsdCents.toString(),
-        rate_micro: rateMicro.toString(),
-        rate_label: "simulated",
-        net_npr: netNprPaisa.toString(),
-        settled_at: now.toISOString(),
-      };
+      // 6. Document (simulated settlement advice, TRD §11)
+      const kyc = await prisma.kycRecord.findFirst({
+        where: { merchantId: link.merchantId },
+        orderBy: { createdAt: "desc" },
+      });
+      const kycData = kyc?.data && typeof kyc.data === "object" && !Array.isArray(kyc.data)
+        ? (kyc.data as Record<string, unknown>)
+        : null;
+      const docJson = buildDocumentJson({
+        merchantName: link.merchant.name,
+        merchantPanVat: typeof kycData?.pan_vat === "string" ? kycData.pan_vat : null,
+        invoiceReference: `PL-${link.id.slice(-8).toUpperCase()}`,
+        grossUsdCents: grossCents,
+        feeUsdCents: feeCents,
+        feeBps,
+        rateMicro,
+        netNprPaisa,
+        at: now,
+      });
       const docSha = sha256(JSON.stringify(docJson));
 
       await prisma.document.create({
         data: {
           settlementId: settlement.id,
-          json: docJson,
+          json: { ...docJson },
           sha256: docSha,
         },
       });

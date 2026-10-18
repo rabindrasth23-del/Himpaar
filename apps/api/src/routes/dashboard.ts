@@ -10,6 +10,7 @@ import { getPrisma } from "../config/prisma.js";
 import { generateApiKey, sha256 } from "../lib/crypto.js";
 import { HimpaarError } from "../lib/errors.js";
 import { requireAuth } from "../middleware/session.js";
+import { readDocumentJson, renderDocumentPdf, toDocumentDto } from "../lib/document.js";
 import { randomBytes } from "node:crypto";
 
 const dashboardRoutes: FastifyPluginAsync = async (fastify) => {
@@ -138,43 +139,8 @@ const dashboardRoutes: FastifyPluginAsync = async (fastify) => {
     const docs = await prisma.document.findMany({
       where: { settlement: { payment: { paymentLink: { merchantId: request.merchantId! } } } },
       orderBy: { createdAt: "desc" },
-      include: {
-        settlement: {
-          include: {
-            payment: {
-              include: {
-                paymentLink: { select: { merchant: { select: { name: true } } } },
-              },
-            },
-          },
-        },
-      },
     });
-
-    return {
-      data: docs.map((d) => {
-        const json = d.json as Record<string, unknown>;
-        return {
-          id: d.id,
-          settlement_id: d.settlementId,
-          title: json.title ?? "Himpaar Settlement Advice (simulated)",
-          status: "generated" as const,
-          merchant_name: json.merchant_name ?? "",
-          merchant_pan_vat: json.merchant_pan_vat ?? null,
-          payer_name: json.payer_name ?? "Simulated Payer",
-          payer_country: json.payer_country ?? "US",
-          reference: json.reference ?? "",
-          gross_usd: json.gross_usd ?? "0",
-          fee_usd: json.fee_usd ?? "0",
-          fee_bps: json.fee_bps ?? 0,
-          net_usd: json.net_usd ?? "0",
-          rate_label: "simulated" as const,
-          net_npr: json.net_npr ?? "0",
-          sha256: d.sha256,
-          created_at: d.createdAt.toISOString(),
-        };
-      }),
-    };
+    return { data: docs.map(toDocumentDto) };
   });
 
   app.get("/v1/documents/:id", {
@@ -186,26 +152,24 @@ const dashboardRoutes: FastifyPluginAsync = async (fastify) => {
       where: { id: request.params.id, settlement: { payment: { paymentLink: { merchantId: request.merchantId! } } } },
     });
     if (!d) throw new HimpaarError(404, "NOT_FOUND", "Document not found.");
-    const json = d.json as Record<string, unknown>;
-    return {
-      id: d.id,
-      settlement_id: d.settlementId,
-      title: json.title ?? "Himpaar Settlement Advice (simulated)",
-      status: "generated" as const,
-      merchant_name: json.merchant_name ?? "",
-      merchant_pan_vat: json.merchant_pan_vat ?? null,
-      payer_name: json.payer_name ?? "Simulated Payer",
-      payer_country: json.payer_country ?? "US",
-      reference: json.reference ?? "",
-      gross_usd: json.gross_usd ?? "0",
-      fee_usd: json.fee_usd ?? "0",
-      fee_bps: json.fee_bps ?? 0,
-      net_usd: json.net_usd ?? "0",
-      rate_label: "simulated" as const,
-      net_npr: json.net_npr ?? "0",
-      sha256: d.sha256,
-      created_at: d.createdAt.toISOString(),
-    };
+    return toDocumentDto(d);
+  });
+
+  app.get("/v1/documents/:id/pdf", {
+    schema: { params: z.object({ id: z.string() }) },
+    preHandler: [requireAuth],
+  }, async (request, reply) => {
+    const prisma = getPrisma();
+    const d = await prisma.document.findFirst({
+      where: { id: request.params.id, settlement: { payment: { paymentLink: { merchantId: request.merchantId! } } } },
+    });
+    if (!d) throw new HimpaarError(404, "NOT_FOUND", "Document not found.");
+    const pdf = await renderDocumentPdf(d.id, d.sha256, readDocumentJson(d.json, d.createdAt));
+    return reply
+      .header("Content-Type", "application/pdf")
+      .header("Content-Disposition", `attachment; filename="himpaar-settlement-advice-${d.id}.pdf"`)
+      .header("Cache-Control", "private, no-store")
+      .send(pdf);
   });
 
   /* ── API Keys ──────────────────────────────────────────────── */
@@ -219,7 +183,7 @@ const dashboardRoutes: FastifyPluginAsync = async (fastify) => {
     return {
       data: keys.map((k) => ({
         id: k.id,
-        name: k.prefix, // prefix is used as display name
+        name: k.name || k.prefix,
         prefix: k.prefix,
         created_at: k.createdAt.toISOString(),
         last_used_at: null,
@@ -239,6 +203,7 @@ const dashboardRoutes: FastifyPluginAsync = async (fastify) => {
     const apiKey = await prisma.apiKey.create({
       data: {
         merchantId: request.merchantId!,
+        name: request.body.name,
         prefix,
         sha256Hash: keyHash,
       },
@@ -256,7 +221,7 @@ const dashboardRoutes: FastifyPluginAsync = async (fastify) => {
     return reply.status(201).send({
       api_key: {
         id: apiKey.id,
-        name: prefix,
+        name: apiKey.name,
         prefix,
         created_at: apiKey.createdAt.toISOString(),
         last_used_at: null,
@@ -266,7 +231,7 @@ const dashboardRoutes: FastifyPluginAsync = async (fastify) => {
     });
   });
 
-  app.post("/v1/api-keys/:id/revoke", {
+  app.delete("/v1/api-keys/:id", {
     schema: { params: z.object({ id: z.string() }) },
     preHandler: [requireAuth],
   }, async (request, reply) => {
@@ -326,10 +291,12 @@ const dashboardRoutes: FastifyPluginAsync = async (fastify) => {
     });
 
     return reply.status(201).send({
-      id: ep.id,
-      url: ep.url,
+      endpoint: {
+        id: ep.id,
+        url: ep.url,
+        created_at: ep.createdAt.toISOString(),
+      },
       secret: signingSecret,
-      created_at: ep.createdAt.toISOString(),
     });
   });
 
@@ -381,7 +348,10 @@ const dashboardRoutes: FastifyPluginAsync = async (fastify) => {
     });
     if (!d) throw new HimpaarError(404, "NOT_FOUND", "Delivery not found.");
 
-    // Simulated redeliver: just bump the attempt count
+    // Simulated redeliver: TRD §8 caps a delivery at 5 attempts
+    if (d.attempt >= 5) {
+      throw new HimpaarError(409, "MAX_ATTEMPTS_REACHED", "This delivery has already used all 5 attempts.");
+    }
     const updated = await prisma.webhookDelivery.update({
       where: { id: d.id },
       data: { attempt: d.attempt + 1, status: "delivered" },

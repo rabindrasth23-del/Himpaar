@@ -61,6 +61,7 @@ model KycRecord {
 model ApiKey {
   id         String    @id @default(cuid())
   merchantId String    @map("merchant_id")
+  name       String    @default("") // user-chosen label
   prefix     String    // first 8 chars of key, for identification
   sha256Hash String    @map("sha256_hash") // SHA-256 hash of the full key
   revokedAt  DateTime? @map("revoked_at")
@@ -86,6 +87,8 @@ model PaymentLink {
   expiredAt  DateTime? @map("expired_at")
   cancelledAt DateTime? @map("cancelled_at")
   description String?
+  clientName  String?   @map("client_name")
+  clientEmail String?   @map("client_email")
   createdAt  DateTime  @default(now()) @map("created_at")
   updatedAt  DateTime  @updatedAt @map("updated_at")
 

@@ -36,6 +36,8 @@ function toPaymentLinkDto(link: {
   currency: string;
   status: string;
   description: string | null;
+  clientName: string | null;
+  clientEmail: string | null;
   createdAt: Date;
   expiresAt: Date;
   paidAt: Date | null;
@@ -54,8 +56,9 @@ function toPaymentLinkDto(link: {
       currency: link.currency,
     },
     description: link.description ?? "",
-    client_name: "", // stored separately if needed, placeholder
-    client_email: "", // same
+    client_name: link.clientName ?? "",
+    // Legacy rows predate the column; fall back to a valid placeholder so the shared schema parses.
+    client_email: link.clientEmail ?? "unknown@example.invalid",
     due_date: link.expiresAt.toISOString().slice(0, 10),
     status: link.status,
     created_at: link.createdAt.toISOString(),
@@ -117,15 +120,14 @@ const paymentLinkRoutes: FastifyPluginAsync = async (fastify) => {
         amount: amountCents,
         currency: body.amount.currency,
         description: body.description,
+        clientName: body.client_name,
+        clientEmail: body.client_email,
         expiresAt,
         status: "open",
       },
     });
 
     const dto = toPaymentLinkDto(link, env);
-    // Add client info from the request
-    dto.client_name = body.client_name;
-    dto.client_email = body.client_email;
     dto.due_date = body.due_date;
 
     // Store idempotency record

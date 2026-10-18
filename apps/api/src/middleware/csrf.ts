@@ -15,22 +15,44 @@ export async function csrfCheck(request: FastifyRequest, _reply: FastifyReply) {
     return;
   }
 
-  const env = getEnv();
-  const origin = request.headers.origin;
-
-  // In development, allow requests without an Origin header (e.g. curl, Postman)
-  if (!origin && env.NODE_ENV === "development") {
+  // Bearer API-key requests are not cookie-authenticated, so CSRF does not apply (TRD §10).
+  const authz = request.headers.authorization;
+  if (typeof authz === "string" && authz.startsWith("Bearer ")) {
     return;
   }
 
-  if (!origin) {
+  // Requests carrying a body must be JSON — blocks simple-form cross-site POSTs.
+  const hasBody =
+    (request.headers["content-length"] !== undefined && request.headers["content-length"] !== "0") ||
+    request.headers["transfer-encoding"] !== undefined;
+  if (hasBody) {
+    const ct = (request.headers["content-type"] ?? "").toLowerCase();
+    if (!ct.startsWith("application/json")) {
+      throw new HimpaarError(415, "UNSUPPORTED_MEDIA_TYPE", "Content-Type must be application/json.");
+    }
+  }
+
+  const env = getEnv();
+  // Prefer Origin; fall back to Referer when Origin is absent.
+  const source = request.headers.origin ?? request.headers.referer;
+
+  // In development, allow requests with neither header (e.g. curl, Postman)
+  if (!source && env.NODE_ENV === "development") {
+    return;
+  }
+
+  if (!source) {
     throw new HimpaarError(403, "CSRF_REJECTED", "Missing Origin header.");
   }
 
-  // Compare origins
-  const allowed = new URL(env.WEB_URL).origin;
-  const incoming = new URL(origin).origin;
+  let incoming: string;
+  try {
+    incoming = new URL(source).origin;
+  } catch {
+    throw new HimpaarError(403, "CSRF_REJECTED", "Malformed Origin header.");
+  }
 
+  const allowed = new URL(env.WEB_URL).origin;
   if (incoming !== allowed) {
     throw new HimpaarError(403, "CSRF_REJECTED", "Origin header does not match the allowed origin.");
   }
