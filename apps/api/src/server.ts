@@ -1,20 +1,37 @@
 import { buildApp } from "./app.js";
 import { getEnv } from "./config/env.js";
+import { startWebhookWorker } from "./lib/webhook-worker.js";
+import { closeLedgerPool } from "./lib/ledger.js";
 
 /**
- * Start the Fastify server.
- * Separated from app.ts so tests can import buildApp() without listening.
+ * Start the Fastify server, webhook worker, and graceful shutdown handlers.
  */
 async function start() {
   const env = getEnv();
   const app = await buildApp();
 
-  try {
-    await app.listen({ port: env.PORT, host: "0.0.0.0" });
-  } catch (err) {
-    app.log.error(err);
-    process.exit(1);
-  }
+  // Start listening
+  await app.listen({ port: env.PORT, host: "0.0.0.0" });
+
+  // Start webhook worker (polling loop)
+  const stopWorker = startWebhookWorker(app.log);
+
+  // Graceful shutdown: stop claiming new webhook rows, finish in-flight,
+  // then close server and connection pools.
+  const shutdown = async (signal: string) => {
+    app.log.info({ signal }, "shutdown signal received");
+    await stopWorker();
+    await app.close();
+    await closeLedgerPool();
+    process.exit(0);
+  };
+
+  process.on("SIGTERM", () => shutdown("SIGTERM"));
+  process.on("SIGINT", () => shutdown("SIGINT"));
 }
 
-start();
+start().catch((err) => {
+  // eslint-disable-next-line no-console
+  console.error("Fatal startup error:", err);
+  process.exit(1);
+});

@@ -48,6 +48,7 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
 
   // POST /v1/auth/signup
   app.post("/v1/auth/signup", {
+    config: { rateLimit: { max: 10, timeWindow: "1 minute" } },
     schema: {
       body: SignupInputSchema,
     },
@@ -106,6 +107,7 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
 
   // POST /v1/auth/login
   app.post("/v1/auth/login", {
+    config: { rateLimit: { max: 10, timeWindow: "1 minute" } },
     schema: {
       body: LoginInputSchema,
     },

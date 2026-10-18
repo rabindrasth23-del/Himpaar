@@ -21,6 +21,7 @@ import { getEnv } from "../config/env.js";
 import { sha256 } from "../lib/crypto.js";
 import { HimpaarError } from "../lib/errors.js";
 import { buildDocumentJson } from "../lib/document.js";
+import { postPaymentLedgerEntries } from "../lib/ledger.js";
 
 /**
  * Fee calculation: gross × feeBps / 10_000.
@@ -53,6 +54,14 @@ const simulateRoutes: FastifyPluginAsync = async (fastify) => {
 
   // POST /v1/public/payment-links/:token/simulate
   app.post("/v1/public/payment-links/:token/simulate", {
+    config: {
+      rateLimit: {
+        max: 20,
+        timeWindow: "1 minute",
+        keyGenerator: (req: { ip: string; params: unknown }) =>
+          `${req.ip}:${(req.params as { token: string }).token}`,
+      },
+    },
     schema: {
       params: z.object({ token: z.string() }),
       // Flat body: { method, outcome, event_id } — matches the web client (TRD §7).
@@ -169,12 +178,23 @@ const simulateRoutes: FastifyPluginAsync = async (fastify) => {
       });
       const docSha = sha256(JSON.stringify(docJson));
 
-      await prisma.document.create({
+      const doc = await prisma.document.create({
         data: {
           settlementId: settlement.id,
           json: { ...docJson },
           sha256: docSha,
         },
+      });
+
+      // 7. Ledger entries (TRD §5) — 5 transfers in a single DB transaction
+      await postPaymentLedgerEntries({
+        paymentId: payment.id,
+        merchantId: link.merchantId,
+        grossUsdCents: grossCents,
+        feeUsdCents: feeCents,
+        netUsdCents,
+        netNprPaisa,
+        at: now,
       });
 
       // Record bank event result
@@ -186,12 +206,21 @@ const simulateRoutes: FastifyPluginAsync = async (fastify) => {
         },
       });
 
-      // Fire webhooks
+      // Fire webhooks: payment.succeeded, settlement.settled, document.created
       await fireWebhooks(prisma, link.merchantId, "payment.succeeded", {
         payment_id: payment.id,
         settlement_id: settlement.id,
         amount: { amount_minor: grossCents.toString(), currency: "USD" },
         net_npr: { amount_minor: netNprPaisa.toString(), currency: "NPR" },
+      });
+      await fireWebhooks(prisma, link.merchantId, "settlement.settled", {
+        settlement_id: settlement.id,
+        payment_id: payment.id,
+        net_npr: { amount_minor: netNprPaisa.toString(), currency: "NPR" },
+      });
+      await fireWebhooks(prisma, link.merchantId, "document.created", {
+        document_id: doc.id,
+        settlement_id: settlement.id,
       });
 
       paymentStatus = "succeeded";
@@ -241,7 +270,7 @@ const simulateRoutes: FastifyPluginAsync = async (fastify) => {
   });
 };
 
-/** Fire webhook deliveries to all of a merchant's endpoints. */
+/** Enqueue webhook deliveries (pending) for all of a merchant's endpoints. */
 async function fireWebhooks(
   prisma: ReturnType<typeof getPrisma>,
   merchantId: string,
@@ -258,8 +287,8 @@ async function fireWebhooks(
         endpointId: ep.id,
         event: eventType,
         payload: JSON.parse(JSON.stringify(payload)),
-        status: "delivered", // Simulated: always "delivered"
-        attempt: 1,
+        status: "pending",
+        attempt: 0, // worker will increment to 1 on first attempt
       },
     });
   }

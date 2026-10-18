@@ -193,6 +193,13 @@ const dashboardRoutes: FastifyPluginAsync = async (fastify) => {
   });
 
   app.post("/v1/api-keys", {
+    config: {
+      rateLimit: {
+        max: 10,
+        timeWindow: "1 hour",
+        keyGenerator: (req: import("fastify").FastifyRequest) => `apikey-create:${req.merchantId}`,
+      },
+    },
     schema: { body: CreateApiKeyInputSchema },
     preHandler: [requireAuth],
   }, async (request, reply) => {

@@ -64,6 +64,8 @@ export async function buildApp() {
   await app.register(rateLimit, {
     max: 100,
     timeWindow: "1 minute",
+    // Allow per-route overrides
+    allowList: [],
   });
 
   // CSRF protection on all state-changing requests

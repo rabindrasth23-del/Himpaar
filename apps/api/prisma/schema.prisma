@@ -203,6 +203,7 @@ model WebhookDelivery {
   payload       Json
   attempt       Int       @default(1)
   status        String    @default("pending") // pending, delivered, failed, dead
+  responseCode  Int?      @map("response_code") // HTTP status from delivery attempt
   nextAttemptAt DateTime? @map("next_attempt_at")
   createdAt     DateTime  @default(now()) @map("created_at")
   updatedAt     DateTime  @updatedAt @map("updated_at")
