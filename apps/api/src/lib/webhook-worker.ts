@@ -151,7 +151,7 @@ async function processBatch(log: FastifyBaseLogger): Promise<number> {
       log.warn({ deliveryId: d.id, attempt: newAttempt }, "webhook dead after max attempts");
     } else {
       // Schedule retry
-      const delayMs = RETRY_DELAYS_MS[newAttempt - 2] ?? RETRY_DELAYS_MS[RETRY_DELAYS_MS.length - 1]!;
+      const delayMs = RETRY_DELAYS_MS[newAttempt - 2] ?? RETRY_DELAYS_MS[RETRY_DELAYS_MS.length - 1] ?? 7_200_000;
       const nextAt = new Date(Date.now() + delayMs);
       await prisma.webhookDelivery.update({
         where: { id: d.id },

@@ -1,91 +1,105 @@
-import { Link2, CreditCard, Landmark, ArrowUpRight } from "lucide-react";
-
-const stats = [
-  { label: "Payment Links", value: "—", icon: Link2, href: "/payment-links" },
-  { label: "Payments", value: "—", icon: CreditCard, href: "/payments" },
-  { label: "Settlements", value: "—", icon: Landmark, href: "/settlements" },
-] as const;
+/**
+ * Overview — /dashboard
+ * Stat cards with real counts from the API, quick-action links.
+ */
+import { Link } from "react-router";
+import { ArrowUpRight, CreditCard, FileText, Landmark, Link2, Plus } from "lucide-react";
+import { usePaymentLinks, usePayments, useSettlements } from "../../api/hooks.ts";
+import { PageHeader, SimulatedTag, StatCard } from "../../components/ui.tsx";
+import { formatMoney } from "../../lib/money.ts";
 
 export function OverviewPage() {
-  return (
-    <>
-      <div className="mb-8">
-        <h1 className="text-2xl font-semibold text-text-primary">Overview</h1>
-        <p className="mt-1 text-sm text-text-secondary">
-          Welcome to Himpaar. Your sandbox dashboard.
-        </p>
-      </div>
+  const links = usePaymentLinks();
+  const payments = usePayments();
+  const settlements = useSettlements();
 
-      {/* Stats grid */}
-      <div className="grid gap-4 sm:grid-cols-3">
-        {stats.map(({ label, value, icon: Icon, href }) => (
-          <a
-            key={label}
-            href={href}
-            className="group flex items-start justify-between rounded-xl border border-border bg-surface-elevated p-5 shadow-card transition-all hover:border-border-hover hover:shadow-md"
+  const loading = links.isLoading || payments.isLoading;
+
+  const totalGross = (settlements.data ?? [])
+    .filter((s) => s.status === "settled")
+    .reduce((acc, s) => acc + BigInt(s.net_npr.amount_minor), 0n);
+
+  return (
+    <div>
+      <PageHeader
+        title="Overview"
+        description="Your sandbox dashboard — all data is simulated."
+        actions={
+          <Link
+            to="/dashboard/links"
+            className="inline-flex h-9 items-center gap-2 rounded-md bg-brand-600 px-4 text-sm font-medium text-white shadow-xs transition-colors hover:bg-brand-700 active:bg-brand-800"
           >
-            <div>
-              <p className="text-sm font-medium text-text-secondary">{label}</p>
-              <p className="mt-2 text-3xl font-semibold tracking-tight text-text-primary">
-                {value}
-              </p>
-            </div>
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-brand-50 text-brand-600 transition-colors group-hover:bg-brand-100">
-              <Icon className="h-5 w-5" />
-            </div>
-          </a>
-        ))}
+            <Plus className="h-4 w-4" aria-hidden />
+            Create link
+          </Link>
+        }
+      />
+
+      {/* Stats */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <StatCard
+          label="Payment links"
+          icon={<Link2 className="h-4 w-4" aria-hidden />}
+          value={links.data?.length ?? 0}
+          loading={loading}
+          hint={<SimulatedTag />}
+        />
+        <StatCard
+          label="Payments"
+          icon={<CreditCard className="h-4 w-4" aria-hidden />}
+          value={payments.data?.length ?? 0}
+          loading={loading}
+          hint={<SimulatedTag />}
+        />
+        <StatCard
+          label="Settlements"
+          icon={<Landmark className="h-4 w-4" aria-hidden />}
+          value={settlements.data?.length ?? 0}
+          loading={settlements.isLoading}
+          hint={<SimulatedTag />}
+        />
+        <StatCard
+          label="Net settled (NPR)"
+          icon={<FileText className="h-4 w-4" aria-hidden />}
+          value={formatMoney(totalGross.toString(), "NPR")}
+          loading={settlements.isLoading}
+          hint={<SimulatedTag />}
+        />
       </div>
 
       {/* Quick actions */}
-      <div className="mt-8">
-        <h2 className="text-lg font-semibold text-text-primary">Quick actions</h2>
-        <div className="mt-4 grid gap-3 sm:grid-cols-2">
-          <a
-            href="/payment-links"
-            className="flex items-center gap-3 rounded-xl border border-border bg-surface-elevated px-5 py-4 shadow-xs transition-all hover:border-border-hover hover:shadow-sm"
+      <h2 className="mt-8 mb-4 font-display text-base font-semibold text-text-primary">Quick actions</h2>
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {[
+          { to: "/dashboard/links", title: "Payment links", sub: "Create and manage links", icon: Link2 },
+          { to: "/dashboard/payments", title: "Payments", sub: "View simulated payments", icon: CreditCard },
+          { to: "/dashboard/documents", title: "Documents", sub: "Download settlement advice", icon: FileText },
+          { to: "/dashboard/sandbox", title: "Sandbox controls", sub: "Run the demo flow", icon: Landmark },
+        ].map(({ to, title, sub, icon: Icon }) => (
+          <Link
+            key={to}
+            to={to}
+            className="group flex items-center gap-3 rounded-lg border border-border bg-surface-elevated px-5 py-4 shadow-xs transition-all hover:border-border-hover hover:shadow-sm"
           >
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-50 text-brand-600">
-              <Link2 className="h-4 w-4" />
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-brand-600 transition-colors group-hover:bg-brand-100">
+              <Icon className="h-4 w-4" aria-hidden />
             </div>
-            <div className="flex-1">
-              <p className="text-sm font-medium text-text-primary">
-                Create Payment Link
-              </p>
-              <p className="text-xs text-text-muted">
-                Generate a link for your customer to pay
-              </p>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-medium text-text-primary">{title}</p>
+              <p className="text-xs text-text-secondary">{sub}</p>
             </div>
-            <ArrowUpRight className="h-4 w-4 text-text-muted" />
-          </a>
-          <a
-            href="/api-keys"
-            className="flex items-center gap-3 rounded-xl border border-border bg-surface-elevated px-5 py-4 shadow-xs transition-all hover:border-border-hover hover:shadow-sm"
-          >
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-50 text-brand-600">
-              <CreditCard className="h-4 w-4" />
-            </div>
-            <div className="flex-1">
-              <p className="text-sm font-medium text-text-primary">
-                Manage API Keys
-              </p>
-              <p className="text-xs text-text-muted">
-                Create keys for SDK integration
-              </p>
-            </div>
-            <ArrowUpRight className="h-4 w-4 text-text-muted" />
-          </a>
-        </div>
+            <ArrowUpRight className="h-4 w-4 shrink-0 text-text-muted transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" aria-hidden />
+          </Link>
+        ))}
       </div>
 
       {/* Sandbox notice */}
-      <div className="mt-8 rounded-xl border border-warning/30 bg-warning/5 p-4">
-        <p className="text-sm font-medium text-warning">Sandbox Mode</p>
-        <p className="mt-1 text-sm text-text-secondary">
-          You are in test mode. All transactions are simulated and no real money is
-          moved.
+      <div className="mt-8 rounded-lg border border-warning/25 bg-warning/5 px-4 py-3 text-sm">
+        <p className="font-medium text-warning-fg">Sandbox mode</p>
+        <p className="mt-0.5 text-text-secondary">
+          All transactions are simulated. No real money is moved.
         </p>
       </div>
-    </>
+    </div>
   );
 }

@@ -14,6 +14,7 @@ import {
   LogOut,
   Map,
   Menu,
+  Settings,
   ShieldAlert,
   X,
   type LucideIcon,
@@ -37,6 +38,7 @@ export const NAV_ITEMS: NavItem[] = [
   { to: "/dashboard/documents", label: "Documents", icon: FileText },
   { to: "/dashboard/developers", label: "Developers", icon: Code2 },
   { to: "/dashboard/sandbox", label: "Sandbox", icon: FlaskConical },
+  { to: "/dashboard/settings", label: "Settings", icon: Settings },
   { to: "/dashboard/roadmap", label: "Roadmap", icon: Map },
 ];
 
@@ -114,6 +116,13 @@ export function DashboardLayout() {
 
   useEffect(() => setMobileOpen(false), [location.pathname]);
 
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setMobileOpen(false);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [mobileOpen]);
+
   const merchant = session.data?.merchant;
   const email = session.data?.user.email;
 
@@ -122,6 +131,12 @@ export function DashboardLayout() {
 
   return (
     <div className="flex min-h-dvh bg-surface-secondary">
+      <a
+        href="#main"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[70] focus:rounded-md focus:bg-surface-elevated focus:px-3 focus:py-2 focus:text-sm focus:font-medium focus:shadow-lg"
+      >
+        Skip to content
+      </a>
       {/* Desktop sidebar */}
       <aside
         className={cn(
@@ -136,14 +151,6 @@ export function DashboardLayout() {
         </div>
         <SidebarNav collapsed={collapsed} />
         <div className="space-y-0.5 border-t border-border p-2">
-          <a
-            href="https://github.com/standard-webhooks/standard-webhooks"
-            className="sr-only"
-            aria-hidden
-            tabIndex={-1}
-          >
-            {/* reserved */}
-          </a>
           <button
             type="button"
             onClick={() => setCollapsed((c) => !c)}
@@ -168,7 +175,10 @@ export function DashboardLayout() {
             aria-label="Close menu"
             onClick={() => setMobileOpen(false)}
           />
-          <aside className="relative flex h-full w-64 flex-col border-r border-border bg-surface-elevated shadow-lg">
+          <aside
+            aria-label="Menu"
+            className="relative flex h-full w-64 flex-col border-r border-border bg-surface-elevated shadow-lg"
+          >
             <div className="flex h-14 items-center justify-between border-b border-border px-4">
               <HimpaarLogo />
               <button
@@ -177,7 +187,7 @@ export function DashboardLayout() {
                 className="rounded-md p-1.5 text-slate-700 hover:bg-slate-100"
                 aria-label="Close menu"
               >
-                <X className="h-4 w-4" />
+                <X className="h-4 w-4" aria-hidden />
               </button>
             </div>
             <SidebarNav collapsed={false} onNavigate={() => setMobileOpen(false)} />
@@ -195,7 +205,7 @@ export function DashboardLayout() {
             className="-ml-1 rounded-md p-1.5 text-slate-700 hover:bg-slate-100 lg:hidden"
             aria-label="Open menu"
           >
-            <Menu className="h-5 w-5" />
+            <Menu className="h-5 w-5" aria-hidden />
           </button>
           <span className="lg:hidden">
             <HimpaarLogo collapsed />
@@ -234,7 +244,7 @@ export function DashboardLayout() {
           </div>
         )}
 
-        <main className="flex-1">
+        <main id="main" tabIndex={-1} className="flex-1 outline-none">
           <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
             <Outlet />
           </div>
@@ -242,7 +252,7 @@ export function DashboardLayout() {
 
         <footer className="border-t border-border px-4 py-4 text-center text-xs text-text-secondary sm:px-6">
           <BookOpen className="mr-1 inline h-3.5 w-3.5 align-[-2px]" aria-hidden />
-          Himpaar sandbox. Simulated data only; not a bank and no real payments.
+          Sandbox preview. All payments, rates and documents are simulated. No real money moves.
         </footer>
       </div>
     </div>

@@ -9,7 +9,7 @@ import { CreateApiKeyInputSchema, CreateWebhookEndpointInputSchema } from "@himp
 import { getPrisma } from "../config/prisma.js";
 import { generateApiKey, sha256 } from "../lib/crypto.js";
 import { HimpaarError } from "../lib/errors.js";
-import { requireAuth } from "../middleware/session.js";
+import { requireAuth, requireMerchant } from "../middleware/session.js";
 import { readDocumentJson, renderDocumentPdf, toDocumentDto } from "../lib/document.js";
 import { randomBytes } from "node:crypto";
 
@@ -20,7 +20,7 @@ const dashboardRoutes: FastifyPluginAsync = async (fastify) => {
   app.get("/v1/payments", { preHandler: [requireAuth] }, async (request) => {
     const prisma = getPrisma();
     const payments = await prisma.payment.findMany({
-      where: { paymentLink: { merchantId: request.merchantId! } },
+      where: { paymentLink: { merchantId: requireMerchant(request) } },
       orderBy: { createdAt: "desc" },
       include: { paymentLink: { select: { amount: true, currency: true } } },
     });
@@ -53,7 +53,7 @@ const dashboardRoutes: FastifyPluginAsync = async (fastify) => {
   }, async (request) => {
     const prisma = getPrisma();
     const p = await prisma.payment.findFirst({
-      where: { id: request.params.id, paymentLink: { merchantId: request.merchantId! } },
+      where: { id: request.params.id, paymentLink: { merchantId: requireMerchant(request) } },
       include: { paymentLink: { select: { amount: true, currency: true } } },
     });
     if (!p) throw new HimpaarError(404, "NOT_FOUND", "Payment not found.");
@@ -78,7 +78,7 @@ const dashboardRoutes: FastifyPluginAsync = async (fastify) => {
   app.get("/v1/settlements", { preHandler: [requireAuth] }, async (request) => {
     const prisma = getPrisma();
     const settlements = await prisma.settlement.findMany({
-      where: { payment: { paymentLink: { merchantId: request.merchantId! } } },
+      where: { payment: { paymentLink: { merchantId: requireMerchant(request) } } },
       orderBy: { createdAt: "desc" },
     });
 
@@ -110,7 +110,7 @@ const dashboardRoutes: FastifyPluginAsync = async (fastify) => {
   }, async (request) => {
     const prisma = getPrisma();
     const s = await prisma.settlement.findFirst({
-      where: { id: request.params.id, payment: { paymentLink: { merchantId: request.merchantId! } } },
+      where: { id: request.params.id, payment: { paymentLink: { merchantId: requireMerchant(request) } } },
     });
     if (!s) throw new HimpaarError(404, "NOT_FOUND", "Settlement not found.");
     return {
@@ -137,7 +137,7 @@ const dashboardRoutes: FastifyPluginAsync = async (fastify) => {
   app.get("/v1/documents", { preHandler: [requireAuth] }, async (request) => {
     const prisma = getPrisma();
     const docs = await prisma.document.findMany({
-      where: { settlement: { payment: { paymentLink: { merchantId: request.merchantId! } } } },
+      where: { settlement: { payment: { paymentLink: { merchantId: requireMerchant(request) } } } },
       orderBy: { createdAt: "desc" },
     });
     return { data: docs.map(toDocumentDto) };
@@ -149,7 +149,7 @@ const dashboardRoutes: FastifyPluginAsync = async (fastify) => {
   }, async (request) => {
     const prisma = getPrisma();
     const d = await prisma.document.findFirst({
-      where: { id: request.params.id, settlement: { payment: { paymentLink: { merchantId: request.merchantId! } } } },
+      where: { id: request.params.id, settlement: { payment: { paymentLink: { merchantId: requireMerchant(request) } } } },
     });
     if (!d) throw new HimpaarError(404, "NOT_FOUND", "Document not found.");
     return toDocumentDto(d);
@@ -161,7 +161,7 @@ const dashboardRoutes: FastifyPluginAsync = async (fastify) => {
   }, async (request, reply) => {
     const prisma = getPrisma();
     const d = await prisma.document.findFirst({
-      where: { id: request.params.id, settlement: { payment: { paymentLink: { merchantId: request.merchantId! } } } },
+      where: { id: request.params.id, settlement: { payment: { paymentLink: { merchantId: requireMerchant(request) } } } },
     });
     if (!d) throw new HimpaarError(404, "NOT_FOUND", "Document not found.");
     const pdf = await renderDocumentPdf(d.id, d.sha256, readDocumentJson(d.json, d.createdAt));
@@ -176,7 +176,7 @@ const dashboardRoutes: FastifyPluginAsync = async (fastify) => {
   app.get("/v1/api-keys", { preHandler: [requireAuth] }, async (request) => {
     const prisma = getPrisma();
     const keys = await prisma.apiKey.findMany({
-      where: { merchantId: request.merchantId! },
+      where: { merchantId: requireMerchant(request) },
       orderBy: { createdAt: "desc" },
     });
 
@@ -209,7 +209,7 @@ const dashboardRoutes: FastifyPluginAsync = async (fastify) => {
 
     const apiKey = await prisma.apiKey.create({
       data: {
-        merchantId: request.merchantId!,
+        merchantId: requireMerchant(request),
         name: request.body.name,
         prefix,
         sha256Hash: keyHash,
@@ -218,7 +218,7 @@ const dashboardRoutes: FastifyPluginAsync = async (fastify) => {
 
     await prisma.auditLog.create({
       data: {
-        merchantId: request.merchantId!,
+        merchantId: requireMerchant(request),
         action: "api_key_create",
         details: { keyId: apiKey.id, prefix },
         ipAddress: request.ip,
@@ -244,7 +244,7 @@ const dashboardRoutes: FastifyPluginAsync = async (fastify) => {
   }, async (request, reply) => {
     const prisma = getPrisma();
     const key = await prisma.apiKey.findFirst({
-      where: { id: request.params.id, merchantId: request.merchantId! },
+      where: { id: request.params.id, merchantId: requireMerchant(request) },
     });
     if (!key) throw new HimpaarError(404, "NOT_FOUND", "API key not found.");
 
@@ -255,7 +255,7 @@ const dashboardRoutes: FastifyPluginAsync = async (fastify) => {
 
     await prisma.auditLog.create({
       data: {
-        merchantId: request.merchantId!,
+        merchantId: requireMerchant(request),
         action: "api_key_revoke",
         details: { keyId: key.id },
         ipAddress: request.ip,
@@ -269,7 +269,7 @@ const dashboardRoutes: FastifyPluginAsync = async (fastify) => {
   app.get("/v1/webhook-endpoints", { preHandler: [requireAuth] }, async (request) => {
     const prisma = getPrisma();
     const endpoints = await prisma.webhookEndpoint.findMany({
-      where: { merchantId: request.merchantId! },
+      where: { merchantId: requireMerchant(request) },
       orderBy: { createdAt: "desc" },
     });
 
@@ -291,7 +291,7 @@ const dashboardRoutes: FastifyPluginAsync = async (fastify) => {
 
     const ep = await prisma.webhookEndpoint.create({
       data: {
-        merchantId: request.merchantId!,
+        merchantId: requireMerchant(request),
         url: request.body.url,
         secret: signingSecret,
       },
@@ -313,7 +313,7 @@ const dashboardRoutes: FastifyPluginAsync = async (fastify) => {
   }, async (request, reply) => {
     const prisma = getPrisma();
     const ep = await prisma.webhookEndpoint.findFirst({
-      where: { id: request.params.id, merchantId: request.merchantId! },
+      where: { id: request.params.id, merchantId: requireMerchant(request) },
     });
     if (!ep) throw new HimpaarError(404, "NOT_FOUND", "Webhook endpoint not found.");
 
@@ -325,7 +325,7 @@ const dashboardRoutes: FastifyPluginAsync = async (fastify) => {
   app.get("/v1/webhook-deliveries", { preHandler: [requireAuth] }, async (request) => {
     const prisma = getPrisma();
     const deliveries = await prisma.webhookDelivery.findMany({
-      where: { endpoint: { merchantId: request.merchantId! } },
+      where: { endpoint: { merchantId: requireMerchant(request) } },
       orderBy: { createdAt: "desc" },
       take: 100,
     });
@@ -351,7 +351,7 @@ const dashboardRoutes: FastifyPluginAsync = async (fastify) => {
   }, async (request) => {
     const prisma = getPrisma();
     const d = await prisma.webhookDelivery.findFirst({
-      where: { id: request.params.id, endpoint: { merchantId: request.merchantId! } },
+      where: { id: request.params.id, endpoint: { merchantId: requireMerchant(request) } },
     });
     if (!d) throw new HimpaarError(404, "NOT_FOUND", "Delivery not found.");
 

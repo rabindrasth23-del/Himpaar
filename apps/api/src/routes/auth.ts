@@ -17,7 +17,7 @@ import { getPrisma } from "../config/prisma.js";
 import { getEnv } from "../config/env.js";
 import { generateSessionToken, sha256 } from "../lib/crypto.js";
 import { HimpaarError } from "../lib/errors.js";
-import { requireAuth, setSessionCookie, clearSessionCookie } from "../middleware/session.js";
+import { requireAuth, requireMerchant, setSessionCookie, clearSessionCookie } from "../middleware/session.js";
 
 const ABSOLUTE_HOURS = 7 * 24; // 7 days
 const IDLE_HOURS = 24;
@@ -217,7 +217,7 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
   app.get("/v1/auth/me", {
     preHandler: [requireAuth],
   }, async (request, _reply) => {
-    const { email, dto } = await loadMerchantDto(request.merchantId!);
+    const { email, dto } = await loadMerchantDto(requireMerchant(request));
     return { user: { id: dto.id, email }, merchant: dto };
   });
 
@@ -225,7 +225,7 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
   app.get("/v1/merchant", {
     preHandler: [requireAuth],
   }, async (request, _reply) => {
-    return (await loadMerchantDto(request.merchantId!)).dto;
+    return (await loadMerchantDto(requireMerchant(request))).dto;
   });
 
   // POST /v1/kyc — sandbox: always approves immediately
@@ -240,14 +240,14 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
 
     // Update merchant name if changed
     await prisma.merchant.update({
-      where: { id: request.merchantId! },
+      where: { id: requireMerchant(request) },
       data: { name: company_name },
     });
 
     // Create KYC record (sandbox: always approved)
     await prisma.kycRecord.create({
       data: {
-        merchantId: request.merchantId!,
+        merchantId: requireMerchant(request),
         status: "approved_sandbox",
         data: { company_name, registration_number, pan_vat },
       },
@@ -256,14 +256,14 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
     // Audit
     await prisma.auditLog.create({
       data: {
-        merchantId: request.merchantId!,
+        merchantId: requireMerchant(request),
         action: "kyc_submit",
         details: { status: "approved_sandbox" },
         ipAddress: request.ip,
       },
     });
 
-    const merchant = await prisma.merchant.findUniqueOrThrow({ where: { id: request.merchantId! } });
+    const merchant = await prisma.merchant.findUniqueOrThrow({ where: { id: requireMerchant(request) } });
 
     return {
       id: merchant.id,

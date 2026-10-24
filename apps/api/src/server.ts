@@ -1,7 +1,6 @@
 import { buildApp } from "./app.js";
 import { getEnv } from "./config/env.js";
 import { startWebhookWorker } from "./lib/webhook-worker.js";
-import { closeLedgerPool } from "./lib/ledger.js";
 
 /**
  * Start the Fastify server, webhook worker, and graceful shutdown handlers.
@@ -31,7 +30,6 @@ async function start() {
 }
 
 start().catch((err) => {
-  // eslint-disable-next-line no-console
   console.error("Fatal startup error:", err);
   process.exit(1);
 });

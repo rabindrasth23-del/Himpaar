@@ -15,28 +15,31 @@ import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import pg from "pg";
 
 // ── Safety guard ──────────────────────────────────────────────────
-const TEST_URL = process.env["DATABASE_TEST_URL"];
+const _TEST_URL = process.env["DATABASE_TEST_URL"];
 const MAIN_URL = process.env["DATABASE_URL"];
 const MIGRATE_URL = process.env["DATABASE_MIGRATE_URL"];
 
-if (!TEST_URL) {
+if (!_TEST_URL) {
   throw new Error(
     "DATABASE_TEST_URL is not set. Run: pnpm db:setup-test first."
   );
 }
-if (TEST_URL === MAIN_URL || TEST_URL === MIGRATE_URL) {
+if (_TEST_URL === MAIN_URL || _TEST_URL === MIGRATE_URL) {
   throw new Error(
     "DATABASE_TEST_URL must differ from DATABASE_URL and DATABASE_MIGRATE_URL."
   );
 }
 {
-  const dbName = new URL(TEST_URL).pathname.replace(/^\//, "");
+  const dbName = new URL(_TEST_URL).pathname.replace(/^\//, "");
   if (!dbName.endsWith("_test")) {
     throw new Error(
       `DATABASE_TEST_URL database name must end with '_test' (got '${dbName}').`
     );
   }
 }
+
+// After the guard above, TEST_URL is definitely a string.
+const TEST_URL: string = _TEST_URL;
 
 // ── Helpers ───────────────────────────────────────────────────────
 let ownerPool: pg.Pool; // neondb_owner — full rights
@@ -45,7 +48,7 @@ let appPool: pg.Pool; // himpaar_app — restricted
 function buildAppTestUrl(): string {
   if (!MAIN_URL) throw new Error("DATABASE_URL not set");
   const main = new URL(MAIN_URL);
-  const test = new URL(TEST_URL!);
+  const test = new URL(TEST_URL);
   test.username = main.username;
   test.password = main.password;
   return test.toString();
@@ -212,7 +215,7 @@ describe("non-privileged role cannot call pgledger functions", () => {
     );
     await ownerPool.query(`GRANT USAGE ON SCHEMA pgledger TO "${TEMP_ROLE}"`);
 
-    const tempUrl = new URL(TEST_URL!);
+    const tempUrl = new URL(TEST_URL);
     tempUrl.username = TEMP_ROLE;
     tempUrl.password = TEMP_PW;
     tempClient = new pg.Client({ connectionString: tempUrl.toString() });

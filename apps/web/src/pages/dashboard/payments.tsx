@@ -1,27 +1,82 @@
-import { CreditCard } from "lucide-react";
+/**
+ * Payments list — /dashboard/payments
+ */
+import { Link, useNavigate } from "react-router";
+import { usePayments, usePaymentLinks } from "../../api/hooks.ts";
+import { Card, EmptyState, ErrorState, PageHeader, PageSkeleton, SimulatedTag, StatusBadge, Table, Td, Th, Tr } from "../../components/ui.tsx";
+import { formatMoney } from "../../lib/money.ts";
+import { formatDate } from "../../lib/dates.ts";
+import type { Payment, PaymentLink } from "@himpaar/shared";
 
 export function PaymentsPage() {
-  return (
-    <>
-      <div>
-        <h1 className="text-2xl font-semibold text-text-primary">Payments</h1>
-        <p className="mt-1 text-sm text-text-secondary">
-          View and track all payment activity.
-        </p>
-      </div>
+  const { data, isLoading, isError, error, refetch } = usePayments();
+  const links = usePaymentLinks();
 
-      {/* Empty state */}
-      <div className="mt-12 flex flex-col items-center justify-center rounded-xl border border-dashed border-border py-16">
-        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
-          <CreditCard className="h-6 w-6" />
+  if (isLoading) return <PageSkeleton label="Loading payments" />;
+  if (isError) return <ErrorState error={error} onRetry={() => refetch()} />;
+
+  const payments = data ?? [];
+  const linkMap = new Map((links.data ?? []).map((l) => [l.id, l]));
+
+  return (
+    <div>
+      <PageHeader
+        title="Payments"
+        description="All simulated payments across your payment links."
+      />
+
+      <Card>
+        {payments.length === 0 ? (
+          <EmptyState
+            title="No payments yet"
+            description="Payments appear here after a customer completes a payment link."
+          />
+        ) : (
+          <Table label="Payments">
+            <thead>
+              <tr>
+                <Th>Payment ID</Th>
+                <Th>Link</Th>
+                <Th>Method</Th>
+                <Th align="right">Amount</Th>
+                <Th>Status</Th>
+                <Th>Created</Th>
+              </tr>
+            </thead>
+            <tbody>
+              {payments.map((p) => (
+                <PaymentRow key={p.id} payment={p} link={linkMap.get(p.payment_link_id)} />
+              ))}
+            </tbody>
+          </Table>
+        )}
+      </Card>
+    </div>
+  );
+}
+
+function PaymentRow({ payment: p, link }: { payment: Payment; link?: PaymentLink }) {
+  const navigate = useNavigate();
+  return (
+    <Tr onOpen={() => navigate(`/dashboard/payments/${p.id}`)}>
+      <Td>
+        <Link
+          to={`/dashboard/payments/${p.id}`}
+          className="font-mono text-xs font-medium text-brand-600 underline-offset-2 hover:underline"
+        >
+          {p.id.slice(0, 8)}…
+        </Link>
+      </Td>
+      <Td>{link?.reference ?? p.payment_link_id.slice(0, 8)}</Td>
+      <Td className="capitalize text-text-secondary">{p.method}</Td>
+      <Td align="right" className="tnum whitespace-nowrap font-medium">{formatMoney(p.amount.amount_minor, p.amount.currency)}</Td>
+      <Td>
+        <div className="flex items-center gap-2">
+          <StatusBadge status={p.status} />
+          <SimulatedTag />
         </div>
-        <h3 className="mt-4 text-sm font-semibold text-text-primary">
-          No payments yet
-        </h3>
-        <p className="mt-1 text-sm text-text-secondary">
-          Payments will appear here once customers pay through your links.
-        </p>
-      </div>
-    </>
+      </Td>
+      <Td className="whitespace-nowrap text-text-secondary">{formatDate(p.created_at)}</Td>
+    </Tr>
   );
 }

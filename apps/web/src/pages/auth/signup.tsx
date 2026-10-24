@@ -1,57 +1,83 @@
-import { Link } from "react-router";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Link, useNavigate } from "react-router";
+import { SignupInputSchema, type SignupInput } from "@himpaar/shared";
+import { useSignup } from "../../api/hooks.ts";
+import { Button, Field, Input } from "../../components/ui.tsx";
+import { errorMessage } from "../../components/toast.tsx";
 
 export function SignupPage() {
+  const signup = useSignup();
+  const navigate = useNavigate();
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<SignupInput>({ resolver: zodResolver(SignupInputSchema), mode: "onTouched" });
+
+  const onSubmit = handleSubmit((values) =>
+    signup.mutate(values, { onSuccess: () => navigate("/dashboard/kyc", { replace: true }) }),
+  );
+
   return (
     <>
-      <h2 className="text-xl font-semibold text-text-primary">Create account</h2>
-      <p className="mt-1 text-sm text-text-secondary">
-        Set up your merchant account to start accepting payments.
-      </p>
+      <h1 className="font-display text-2xl font-bold text-slate-900">Create sandbox account</h1>
+      <p className="mt-1.5 text-sm text-slate-500">Test cross-border payment links and NPR settlements with simulated data.</p>
 
-      <form className="mt-6 space-y-4" onSubmit={(e) => e.preventDefault()}>
-        <div>
-          <label htmlFor="signup-email" className="block text-sm font-medium text-text-primary">
-            Email
-          </label>
-          <input
+      <form className="mt-6 space-y-4" onSubmit={onSubmit} noValidate>
+        <Field id="signup-company" label="Company name" error={errors.company_name?.message}>
+          <Input
+            id="signup-company"
+            autoComplete="organization"
+            placeholder="Everest Pixel Labs Pvt. Ltd."
+            invalid={!!errors.company_name}
+            aria-describedby={errors.company_name ? "signup-company-error" : undefined}
+            {...register("company_name")}
+          />
+        </Field>
+        <Field id="signup-email" label="Work email" error={errors.email?.message}>
+          <Input
             id="signup-email"
             type="email"
             autoComplete="email"
-            required
-            className="mt-1.5 block w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm shadow-xs outline-none transition-colors placeholder:text-text-muted focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
-            placeholder="you@example.com"
+            placeholder="you@company.com"
+            invalid={!!errors.email}
+            aria-describedby={errors.email ? "signup-email-error" : undefined}
+            {...register("email")}
           />
-        </div>
-        <div>
-          <label htmlFor="signup-password" className="block text-sm font-medium text-text-primary">
-            Password
-          </label>
-          <input
+        </Field>
+        <Field
+          id="signup-password"
+          label="Password"
+          hint="At least 10 characters."
+          error={errors.password?.message}
+        >
+          <Input
             id="signup-password"
             type="password"
             autoComplete="new-password"
-            required
-            minLength={10}
-            maxLength={128}
-            className="mt-1.5 block w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm shadow-xs outline-none transition-colors placeholder:text-text-muted focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
-            placeholder="At least 10 characters"
+            invalid={!!errors.password}
+            aria-describedby={errors.password ? "signup-password-error" : "signup-password-hint"}
+            {...register("password")}
           />
-          <p className="mt-1 text-xs text-text-muted">
-            Minimum 10 characters. Must not match your email.
+        </Field>
+
+        {signup.isError && (
+          <p role="alert" className="rounded-md border border-danger/25 bg-danger/5 px-3 py-2 text-[13px] text-danger-fg">
+            {errorMessage(signup.error)}
           </p>
-        </div>
-        <button
-          type="submit"
-          className="w-full rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-brand-700 active:bg-brand-800"
-        >
+        )}
+
+        <Button id="signup-submit" type="submit" className="w-full" loading={signup.isPending}>
           Create account
-        </button>
+        </Button>
       </form>
 
       <p className="mt-6 text-center text-sm text-text-secondary">
         Already have an account?{" "}
-        <Link to="/login" className="font-medium text-brand-600 hover:text-brand-700">
-          Sign in
+        <Link to="/login" className="font-medium text-brand-700 underline-offset-2 hover:underline">
+          Log in
         </Link>
       </p>
     </>

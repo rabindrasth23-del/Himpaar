@@ -1,4 +1,6 @@
 import { defineConfig } from "vitest/config";
+import { readFileSync, existsSync } from "node:fs";
+import { resolve } from "node:path";
 
 export default defineConfig({
   test: {
@@ -14,12 +16,9 @@ export default defineConfig({
 
 /** Read .env and return a plain Record for Vitest's env option. */
 function loadEnvToRecord(): Record<string, string> {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const fs = require("node:fs") as typeof import("node:fs");
-  const path = require("node:path") as typeof import("node:path");
-  const envPath = path.resolve(__dirname, ".env");
-  if (!fs.existsSync(envPath)) return {};
-  const lines = fs.readFileSync(envPath, "utf-8").split("\n");
+  const envPath = resolve(import.meta.dirname, ".env");
+  if (!existsSync(envPath)) return {};
+  const lines = readFileSync(envPath, "utf-8").split("\n");
   const env: Record<string, string> = {};
   for (const line of lines) {
     const trimmed = line.trim();

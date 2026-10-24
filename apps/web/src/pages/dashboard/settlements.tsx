@@ -1,29 +1,79 @@
-import { Landmark } from "lucide-react";
+/**
+ * Settlements list — /dashboard/settlements
+ */
+import { Link, useNavigate } from "react-router";
+import { useSettlements } from "../../api/hooks.ts";
+import { Card, EmptyState, ErrorState, PageHeader, PageSkeleton, SimulatedTag, StatusBadge, Table, Td, Th, Tr } from "../../components/ui.tsx";
+import { formatMoney } from "../../lib/money.ts";
+import { formatDate } from "../../lib/dates.ts";
+import type { Settlement } from "@himpaar/shared";
 
 export function SettlementsPage() {
-  return (
-    <>
-      <div>
-        <h1 className="text-2xl font-semibold text-text-primary">
-          Settlements
-        </h1>
-        <p className="mt-1 text-sm text-text-secondary">
-          Track NPR settlements to your bank account.
-        </p>
-      </div>
+  const { data, isLoading, isError, error, refetch } = useSettlements();
 
-      {/* Empty state */}
-      <div className="mt-12 flex flex-col items-center justify-center rounded-xl border border-dashed border-border py-16">
-        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
-          <Landmark className="h-6 w-6" />
+  if (isLoading) return <PageSkeleton label="Loading settlements" />;
+  if (isError) return <ErrorState error={error} onRetry={() => refetch()} />;
+
+  const items = data ?? [];
+
+  return (
+    <div>
+      <PageHeader
+        title="Settlements"
+        description="Simulated settlement records. Nothing is deposited."
+      />
+      <Card>
+        {items.length === 0 ? (
+          <EmptyState
+            title="No settlements yet"
+            description="Settlements are created when a simulated payment succeeds."
+          />
+        ) : (
+          <Table label="Settlements">
+            <thead>
+              <tr>
+                <Th>Reference</Th>
+                <Th align="right">Gross</Th>
+                <Th align="right">Fee</Th>
+                <Th align="right">Net NPR</Th>
+                <Th>Status</Th>
+                <Th>Created</Th>
+              </tr>
+            </thead>
+            <tbody>
+              {items.map((s) => (
+                <SettlementRow key={s.id} settlement={s} />
+              ))}
+            </tbody>
+          </Table>
+        )}
+      </Card>
+    </div>
+  );
+}
+
+function SettlementRow({ settlement: s }: { settlement: Settlement }) {
+  const navigate = useNavigate();
+  return (
+    <Tr onOpen={() => navigate(`/dashboard/settlements/${s.id}`)}>
+      <Td>
+        <Link
+          to={`/dashboard/settlements/${s.id}`}
+          className="font-medium text-text-primary underline-offset-2 hover:underline"
+        >
+          {s.reference}
+        </Link>
+      </Td>
+      <Td align="right" className="tnum whitespace-nowrap">{formatMoney(s.gross.amount_minor, s.gross.currency)}</Td>
+      <Td align="right" className="tnum whitespace-nowrap text-text-secondary">{formatMoney(s.fee.amount_minor, s.fee.currency)}</Td>
+      <Td align="right" className="tnum whitespace-nowrap font-medium">{formatMoney(s.net_npr.amount_minor, "NPR")}</Td>
+      <Td>
+        <div className="flex items-center gap-2">
+          <StatusBadge status={s.status} />
+          <SimulatedTag />
         </div>
-        <h3 className="mt-4 text-sm font-semibold text-text-primary">
-          No settlements yet
-        </h3>
-        <p className="mt-1 text-sm text-text-secondary">
-          Settlements are created automatically when payments succeed.
-        </p>
-      </div>
-    </>
+      </Td>
+      <Td className="whitespace-nowrap text-text-secondary">{formatDate(s.created_at)}</Td>
+    </Tr>
   );
 }

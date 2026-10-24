@@ -79,3 +79,17 @@ export function clearSessionCookie(reply: FastifyReply) {
 }
 
 export { SESSION_COOKIE };
+
+/**
+ * Returns the authenticated merchant's ID.
+ * Must be called AFTER requireAuth (used as preHandler).
+ * Throws 401 if the request is not authenticated — eliminates the need
+ * for `request.merchantId!` non-null assertions in routes.
+ */
+export function requireMerchant(request: FastifyRequest): string {
+  const id = request.merchantId;
+  if (!id) {
+    throw new HimpaarError(401, "UNAUTHORIZED", "Authentication required.");
+  }
+  return id;
+}

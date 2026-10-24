@@ -263,7 +263,7 @@ export function SimulatedTag({ className }: { className?: string }) {
 
 /* ── States ──────────────────────────────────────────────────── */
 export function Skeleton({ className }: { className?: string }) {
-  return <div aria-hidden className={cn("animate-pulse rounded-md bg-slate-100", className)} />;
+  return <div aria-hidden className={cn("skeleton-shimmer rounded-md", className)} />;
 }
 
 export function LoadingRows({ rows = 4, label = "Loading" }: { rows?: number; label?: string }) {
@@ -277,6 +277,24 @@ export function LoadingRows({ rows = 4, label = "Loading" }: { rows?: number; la
         </div>
       ))}
       <span className="sr-only">{label}…</span>
+    </div>
+  );
+}
+
+/** Placeholder with the same shape as a page: header, then a table card. Prevents layout shift. */
+export function PageSkeleton({ label = "Loading", rows = 5 }: { label?: string; rows?: number }) {
+  return (
+    <div role="status" aria-label={label}>
+      <div className="mb-6">
+        <Skeleton className="h-7 w-48" />
+        <Skeleton className="mt-2 h-4 w-72 max-w-full" />
+      </div>
+      <Card>
+        <div className="border-b border-border bg-slate-50/60 px-5 py-3">
+          <Skeleton className="h-3 w-40" />
+        </div>
+        <LoadingRows rows={rows} label={label} />
+      </Card>
     </div>
   );
 }
@@ -323,20 +341,37 @@ export function ErrorState({ error, onRetry }: { error: unknown; onRetry?: () =>
 }
 
 /* ── Table ───────────────────────────────────────────────────── */
-export function Table({ children }: { children: ReactNode }) {
+// On large screens the header row sticks under the top bar (the wrapper must not
+// clip overflow there, or sticky stops working). Small screens scroll sideways.
+export function Table({ children, label, minWidth = 640 }: { children: ReactNode; label?: string; minWidth?: number }) {
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full min-w-[640px] border-collapse text-left text-sm">{children}</table>
+    <div className="overflow-x-auto lg:overflow-visible">
+      <table
+        aria-label={label}
+        style={{ minWidth }}
+        className="w-full border-separate border-spacing-0 text-left text-sm"
+      >
+        {children}
+      </table>
     </div>
   );
 }
-export function Th({ children, align = "left" }: { children?: ReactNode; align?: "left" | "right" }) {
+export function Th({
+  children,
+  align = "left",
+  className,
+}: {
+  children?: ReactNode;
+  align?: "left" | "right";
+  className?: string;
+}) {
   return (
     <th
       scope="col"
       className={cn(
-        "border-b border-border bg-slate-50/60 px-5 py-2.5 text-xs font-medium text-text-secondary",
+        "border-b border-border bg-slate-50 px-5 py-2.5 text-xs font-medium whitespace-nowrap text-text-secondary lg:sticky lg:top-14 lg:z-10",
         align === "right" && "text-right",
+        className,
       )}
     >
       {children}
@@ -353,9 +388,73 @@ export function Td({
   className?: string;
 }) {
   return (
-    <td className={cn("border-b border-border px-5 py-3 text-slate-700", align === "right" && "text-right", className)}>
+    <td
+      className={cn(
+        "border-b border-border px-5 py-3 text-slate-700 group-last/row:border-b-0",
+        align === "right" && "text-right",
+        className,
+      )}
+    >
       {children}
     </td>
+  );
+}
+/**
+ * Table row. With onOpen the whole row is clickable; keep a real link in the
+ * first cell too so keyboard and screen-reader users can reach the detail page.
+ */
+export function Tr({ children, onOpen, className }: { children: ReactNode; onOpen?: () => void; className?: string }) {
+  return (
+    <tr
+      onClick={
+        onOpen
+          ? (e) => {
+              // Let inner buttons and links handle their own clicks.
+              if ((e.target as HTMLElement).closest("a,button,input,select,textarea")) return;
+              onOpen();
+            }
+          : undefined
+      }
+      className={cn(
+        "group/row transition-colors duration-150",
+        onOpen && "cursor-pointer hover:bg-slate-50",
+        className,
+      )}
+    >
+      {children}
+    </tr>
+  );
+}
+
+/* Stat card (Overview) */
+export function StatCard({
+  label,
+  value,
+  hint,
+  icon,
+  loading,
+}: {
+  label: ReactNode;
+  value: ReactNode;
+  hint?: ReactNode;
+  icon?: ReactNode;
+  loading?: boolean;
+}) {
+  return (
+    <Card className="p-5">
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-[13px] font-medium text-text-secondary">{label}</p>
+        {icon && <span className="text-slate-400">{icon}</span>}
+      </div>
+      {loading ? (
+        <Skeleton className="mt-3 h-7 w-32" />
+      ) : (
+        <p className="tnum mt-2 font-display text-[22px] leading-8 font-semibold tracking-tight text-text-primary">
+          {value}
+        </p>
+      )}
+      {hint && <div className="mt-1.5 text-xs text-text-secondary">{hint}</div>}
+    </Card>
   );
 }
 

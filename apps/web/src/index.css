@@ -50,7 +50,8 @@
   /* Text — using slate for WCAG compliance */
   --color-text-primary: oklch(0.18 0.02 248);
   --color-text-secondary: oklch(0.55 0.02 252);
-  --color-text-muted: oklch(0.70 0.015 254);
+  /* Muted text: ~5:1 on white (WCAG AA). Use slate-400 only for icons and decoration. */
+  --color-text-muted: oklch(0.56 0.015 254);
 
   /* Semantic (fills, icons) */
   --color-success: oklch(0.60 0.16 155);
@@ -76,6 +77,13 @@
   --radius-md: 0.5rem;
   --radius-lg: 0.75rem;
   --radius-xl: 1rem;
+  --radius-full: 9999px;
+
+  /* Wise-inspired energetic fintech tokens */
+  --color-wise-lime: #9fe870;
+  --color-wise-lime-hover: #8ee05b;
+  --color-wise-ink: #163300;
+  --color-dark-ink: #0e131f;
 
   /* Shadows */
   --shadow-xs: 0 1px 2px oklch(0 0 0 / 0.05);
@@ -131,4 +139,102 @@
     outline-offset: 2px;
     border-radius: var(--radius-sm);
   }
+
+  /* Money and IDs line up in columns */
+  .tnum {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum" 1, "cv11" 1;
+  }
+
+  /* Native <dialog> (focus trap + Esc built in) */
+  dialog.hp-dialog {
+    padding: 0;
+    border: 0;
+    background: transparent;
+    max-width: 100vw;
+    max-height: 100dvh;
+    overflow: visible;
+  }
+  dialog.hp-dialog::backdrop {
+    background: oklch(0.13 0.03 260 / 0.45);
+    backdrop-filter: blur(2px);
+  }
 }
+
+/* ── Motion (DESIGN.md: fast 150, normal 250, slow 500, entrance 800) ── */
+@keyframes hp-fade-up {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes hp-scale-in {
+  from { opacity: 0; transform: scale(0.96) translateY(4px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes hp-pop {
+  0% { opacity: 0; transform: scale(0.6); }
+  60% { opacity: 1; transform: scale(1.08); }
+  100% { transform: scale(1); }
+}
+@keyframes hp-draw {
+  from { stroke-dashoffset: var(--hp-dash, 48); }
+  to { stroke-dashoffset: 0; }
+}
+@keyframes hp-ring {
+  from { transform: scale(0.8); opacity: 0.55; }
+  to { transform: scale(1.7); opacity: 0; }
+}
+@keyframes hp-shake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-5px); }
+  40%, 80% { transform: translateX(5px); }
+}
+@keyframes hp-spin-slow {
+  to { transform: rotate(360deg); }
+}
+@keyframes hp-toast-in {
+  from { opacity: 0; transform: translateY(12px) scale(0.98); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes hp-shimmer {
+  from { background-position: -200% 0; }
+  to { background-position: 200% 0; }
+}
+
+@utility animate-fade-up {
+  animation: hp-fade-up 250ms var(--ease-out) both;
+}
+@utility animate-scale-in {
+  animation: hp-scale-in 250ms var(--ease-out) both;
+}
+@utility animate-pop {
+  animation: hp-pop 500ms var(--ease-spring) both;
+}
+@utility animate-draw {
+  stroke-dasharray: var(--hp-dash, 48);
+  animation: hp-draw 500ms var(--ease-out) 200ms both;
+}
+@utility animate-ring {
+  animation: hp-ring 1200ms var(--ease-out) 150ms both;
+}
+@utility animate-shake {
+  animation: hp-shake 400ms ease-in-out 150ms both;
+}
+@utility animate-spin-slow {
+  animation: hp-spin-slow 2.4s linear infinite;
+}
+@utility animate-toast-in {
+  animation: hp-toast-in 250ms var(--ease-out) both;
+}
+@utility skeleton-shimmer {
+  background: linear-gradient(90deg, var(--color-slate-100) 25%, var(--color-slate-50) 50%, var(--color-slate-100) 75%);
+  background-size: 200% 100%;
+  animation: hp-shimmer 1.6s linear infinite;
+}
+
+/* Code block syntax colours (contrast checked on navy-950) */
+.tok-key { color: oklch(0.78 0.12 300); }
+.tok-str { color: oklch(0.82 0.12 150); }
+.tok-num { color: oklch(0.83 0.11 70); }
+.tok-com { color: oklch(0.68 0.02 256); font-style: italic; }
+.tok-fn { color: oklch(0.80 0.10 230); }
+.tok-prop { color: oklch(0.86 0.06 256); }

@@ -1,5 +1,5 @@
-// In-memory mock of the Himpaar API. Same interface as the real client.
-// Data resets on page reload; only the mock session survives (localStorage).
+// In-memory + localStorage mock of the Himpaar API. Same interface as the real client.
+// State persists across page refreshes so signup and login work reliably in mock mode.
 import {
   DOCUMENT_TITLE,
   type Payment,
@@ -10,24 +10,88 @@ import {
   type WebhookEventType,
 } from "@himpaar/shared";
 import { HimpaarApiError, type HimpaarApi } from "../types.ts";
-import { MOCK_FEE_BPS, MOCK_RATE_MICRO, createSeed, type MockDb } from "./data.ts";
+import { MOCK_FEE_BPS, MOCK_RATE_MICRO, createSeed, DEMO_EMAIL, type MockDb } from "./data.ts";
 import { kathmanduDate, kathmanduIso, mockAdToBs, mockSettlementMath, randomHex, randomToken } from "./helpers.ts";
 
-const SESSION_KEY = "himpaar.mock.session";
+export const SESSION_KEY = "himpaar.mock.session";
+export const DB_STORAGE_KEY = "himpaar.mock.db_v2";
 
 export interface MockOptions {
   /** Artificial latency in ms so loading states are visible. 0 in tests. */
   latencyMs?: number;
-  /** Storage for the mock session. Defaults to localStorage when available. */
+  /** Storage for the mock session and state. Defaults to localStorage when available. */
   storage?: Pick<Storage, "getItem" | "setItem" | "removeItem"> | null;
   /** Start with this database (tests). */
   db?: MockDb;
 }
 
-export function createMockApi(opts: MockOptions = {}): HimpaarApi & { db: MockDb } {
-  const db = opts.db ?? createSeed();
-  const latency = opts.latencyMs ?? 350;
+function loadStoredDb(storage: Pick<Storage, "getItem" | "setItem" | "removeItem"> | null): MockDb {
+  const seed = createSeed();
+  if (!storage) return seed;
+  try {
+    const raw = storage.getItem(DB_STORAGE_KEY);
+    if (!raw) return seed;
+    const parsed = JSON.parse(raw);
+    if (!parsed || !Array.isArray(parsed.users) || !Array.isArray(parsed.merchants)) return seed;
+
+    // Ensure demo user is always present in users list
+    const hasDemo = parsed.users.some(
+      (u: { email?: string }) => u.email?.toLowerCase() === DEMO_EMAIL.toLowerCase(),
+    );
+    if (!hasDemo && seed.users[0]) {
+      parsed.users.push(seed.users[0]);
+    }
+    // Ensure demo merchant is present
+    const hasDemoMerchant = parsed.merchants.some((m: { id?: string }) => m.id === "mer_0001");
+    if (!hasDemoMerchant && seed.merchants[0]) {
+      parsed.merchants.push(seed.merchants[0]);
+    }
+
+    return {
+      users: parsed.users,
+      merchants: parsed.merchants,
+      links: Array.isArray(parsed.links) ? parsed.links : seed.links,
+      payments: Array.isArray(parsed.payments) ? parsed.payments : seed.payments,
+      settlements: Array.isArray(parsed.settlements) ? parsed.settlements : seed.settlements,
+      documents: Array.isArray(parsed.documents) ? parsed.documents : seed.documents,
+      apiKeys: Array.isArray(parsed.apiKeys) ? parsed.apiKeys : seed.apiKeys,
+      endpoints: Array.isArray(parsed.endpoints) ? parsed.endpoints : seed.endpoints,
+      deliveries: Array.isArray(parsed.deliveries) ? parsed.deliveries : seed.deliveries,
+      seenEventIds: new Set(Array.isArray(parsed.seenEventIds) ? parsed.seenEventIds : []),
+      counters:
+        parsed.counters && typeof parsed.counters.id === "number" ? parsed.counters : seed.counters,
+    };
+  } catch {
+    return seed;
+  }
+}
+
+function persistDb(db: MockDb, storage: Pick<Storage, "getItem" | "setItem" | "removeItem"> | null) {
+  if (!storage) return;
+  try {
+    const toSave = {
+      ...db,
+      seenEventIds: Array.from(db.seenEventIds),
+    };
+    storage.setItem(DB_STORAGE_KEY, JSON.stringify(toSave));
+  } catch {
+    // quota exceeded or private mode
+  }
+}
+
+export function resetMockStorage(
+  storage: Pick<Storage, "getItem" | "setItem" | "removeItem"> | null = typeof localStorage !== "undefined"
+    ? localStorage
+    : null,
+) {
+  storage?.removeItem(DB_STORAGE_KEY);
+  storage?.removeItem(SESSION_KEY);
+}
+
+export function createMockApi(opts: MockOptions = {}): HimpaarApi & { db: MockDb; reset: () => void } {
   const storage = opts.storage !== undefined ? opts.storage : typeof localStorage !== "undefined" ? localStorage : null;
+  const db = opts.db ?? loadStoredDb(storage);
+  const latency = opts.latencyMs ?? 350;
 
   const wait = <T>(value: T | (() => T)): Promise<T> =>
     new Promise((resolve, reject) => {
@@ -101,6 +165,7 @@ export function createMockApi(opts: MockOptions = {}): HimpaarApi & { db: MockDb
       failed_at: null,
     };
     db.settlements.unshift(s);
+    persistDb(db, storage);
     return s;
   }
 
@@ -114,11 +179,17 @@ export function createMockApi(opts: MockOptions = {}): HimpaarApi & { db: MockDb
     }
     createSettlementFor(payment);
     queueWebhook("payment.succeeded");
+    persistDb(db, storage);
   }
 
   return {
     mode: "mock",
     db,
+    reset: () => {
+      resetMockStorage(storage);
+      const seed = createSeed();
+      Object.assign(db, seed);
+    },
 
     getSession: () => wait(() => currentSession()),
 
@@ -129,6 +200,7 @@ export function createMockApi(opts: MockOptions = {}): HimpaarApi & { db: MockDb
           throw new HimpaarApiError({ code: "INVALID_CREDENTIALS", message: "Email or password is incorrect", status: 401 });
         }
         storage?.setItem(SESSION_KEY, user.id);
+        persistDb(db, storage);
         return requireSession();
       }),
 
@@ -149,6 +221,7 @@ export function createMockApi(opts: MockOptions = {}): HimpaarApi & { db: MockDb
         const userId = nextId("usr");
         db.users.push({ id: userId, email: input.email, password: input.password, merchant_id: merchantId });
         storage?.setItem(SESSION_KEY, userId);
+        persistDb(db, storage);
         return requireSession();
       }),
 
@@ -166,6 +239,7 @@ export function createMockApi(opts: MockOptions = {}): HimpaarApi & { db: MockDb
         m.registration_number = input.registration_number;
         m.pan_vat = input.pan_vat;
         m.kyc_status = "approved_sandbox"; // simulated: nothing is checked
+        persistDb(db, storage);
         return { ...m };
       }),
 
@@ -204,6 +278,7 @@ export function createMockApi(opts: MockOptions = {}): HimpaarApi & { db: MockDb
           cancelled_at: null,
         };
         db.links.push(l);
+        persistDb(db, storage);
         return { ...l };
       }),
 
@@ -248,6 +323,7 @@ export function createMockApi(opts: MockOptions = {}): HimpaarApi & { db: MockDb
           revoked_at: null,
         };
         db.apiKeys.unshift(key);
+        persistDb(db, storage);
         return { api_key: key, secret };
       }),
     revokeApiKey: (id) =>
@@ -256,6 +332,7 @@ export function createMockApi(opts: MockOptions = {}): HimpaarApi & { db: MockDb
         const k = db.apiKeys.find((x) => x.id === id);
         if (!k) throw notFound("API key");
         k.revoked_at ??= kathmanduIso();
+        persistDb(db, storage);
       }),
 
     listWebhookEndpoints: () => wait(() => (requireSession(), [...db.endpoints])),
@@ -264,12 +341,14 @@ export function createMockApi(opts: MockOptions = {}): HimpaarApi & { db: MockDb
         requireSession();
         const endpoint = { id: nextId("we"), url: input.url, created_at: kathmanduIso() };
         db.endpoints.push(endpoint);
+        persistDb(db, storage);
         return { endpoint, secret: `whsec_${randomToken(24)}` };
       }),
     deleteWebhookEndpoint: (id) =>
       wait(() => {
         requireSession();
         db.endpoints = db.endpoints.filter((e) => e.id !== id);
+        persistDb(db, storage);
       }),
     listWebhookDeliveries: () => wait(() => (requireSession(), [...db.deliveries])),
     redeliverWebhook: (id) =>
@@ -287,6 +366,7 @@ export function createMockApi(opts: MockOptions = {}): HimpaarApi & { db: MockDb
           next_attempt_at: null,
         };
         db.deliveries.unshift(retry);
+        persistDb(db, storage);
         return retry;
       }),
 
@@ -341,6 +421,7 @@ export function createMockApi(opts: MockOptions = {}): HimpaarApi & { db: MockDb
           payment.failed_at = now;
           queueWebhook("payment.failed");
         }
+        persistDb(db, storage);
         return { payment_status: payment.status, event_id: eventId };
       }),
 
@@ -353,6 +434,7 @@ export function createMockApi(opts: MockOptions = {}): HimpaarApi & { db: MockDb
           throw new HimpaarApiError({ code: "ILLEGAL_TRANSITION", message: `Cannot complete a ${p.status} payment`, status: 409 });
         }
         succeedPayment(p);
+        persistDb(db, storage);
         return { ...p };
       }),
 
@@ -390,6 +472,7 @@ export function createMockApi(opts: MockOptions = {}): HimpaarApi & { db: MockDb
         });
         queueWebhook("settlement.settled");
         queueWebhook("document.created");
+        persistDb(db, storage);
         return { ...st };
       }),
 
@@ -398,7 +481,6 @@ export function createMockApi(opts: MockOptions = {}): HimpaarApi & { db: MockDb
         requireSession();
         const d = db.deliveries.find((x) => x.id === deliveryId);
         if (!d) throw notFound("Delivery");
-        // Same event id again: the receiver should recognise it and do nothing.
         return { duplicate: true as const, delivery: { ...d } };
       }),
   };

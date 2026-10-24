@@ -29,6 +29,11 @@ export function formatDateOnly(ymd: string): string {
   );
 }
 
+/** "08 Oct – 14 Oct 2026" */
+export function formatDateRange(start: string, end: string): string {
+  return `${formatDate(start)} – ${formatDate(end)}`;
+}
+
 const BS_MONTHS = [
   "Baishakh", "Jestha", "Ashadh", "Shrawan", "Bhadra", "Ashwin",
   "Kartik", "Mangsir", "Poush", "Magh", "Falgun", "Chaitra",

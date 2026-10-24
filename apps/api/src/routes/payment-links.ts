@@ -14,7 +14,7 @@ import { getPrisma } from "../config/prisma.js";
 import { getEnv } from "../config/env.js";
 import { generatePaymentLinkToken, sha256 } from "../lib/crypto.js";
 import { HimpaarError } from "../lib/errors.js";
-import { requireAuth } from "../middleware/session.js";
+import { requireAuth, requireMerchant } from "../middleware/session.js";
 
 /** Convert a YYYY-MM-DD due date to an expiry DateTime at end of day Nepal time. */
 function dueDateToExpiry(dueDate: string): Date {
@@ -84,7 +84,7 @@ const paymentLinkRoutes: FastifyPluginAsync = async (fastify) => {
   }, async (request, reply) => {
     const prisma = getPrisma();
     const env = getEnv();
-    const merchantId = request.merchantId!;
+    const merchantId = requireMerchant(request);
     const idempotencyKey = request.headers["idempotency-key"] as string;
     const body = request.body;
 
@@ -161,7 +161,7 @@ const paymentLinkRoutes: FastifyPluginAsync = async (fastify) => {
     const prisma = getPrisma();
     const env = getEnv();
     const links = await prisma.paymentLink.findMany({
-      where: { merchantId: request.merchantId! },
+      where: { merchantId: requireMerchant(request) },
       orderBy: { createdAt: "desc" },
     });
 
@@ -178,7 +178,7 @@ const paymentLinkRoutes: FastifyPluginAsync = async (fastify) => {
     const prisma = getPrisma();
     const env = getEnv();
     const link = await prisma.paymentLink.findFirst({
-      where: { id: request.params.id, merchantId: request.merchantId! },
+      where: { id: request.params.id, merchantId: requireMerchant(request) },
     });
 
     if (!link) {
