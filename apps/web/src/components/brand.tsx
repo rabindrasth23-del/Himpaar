@@ -3,16 +3,10 @@ import { cn } from "./ui.tsx";
 export function HimpaarMark({ className, title = "Himpaar" }: { className?: string; title?: string }) {
   return (
     <img
-      src="/himpaar-mark.svg"
+      src="/himpaar-mark.png"
       alt={title}
       className={cn("h-7 w-7 object-contain inline-block shrink-0 select-none", className)}
       loading="eager"
-      onError={(e) => {
-        const target = e.currentTarget;
-        if (!target.src.endsWith(".png")) {
-          target.src = "/himpaar-mark.png";
-        }
-      }}
     />
   );
 }
