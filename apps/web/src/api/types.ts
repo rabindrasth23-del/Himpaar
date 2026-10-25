@@ -9,8 +9,10 @@ import type {
   CreatedApiKey,
   CreatedWebhookEndpoint,
   KycInput,
+  KycStatus,
   LoginInput,
   Merchant,
+  Money,
   Payment,
   PaymentLink,
   PublicPaymentLink,
@@ -65,6 +67,74 @@ export interface HimpaarApi {
   sandboxCompletePending(paymentId: string): Promise<Payment>;
   sandboxAdvanceSettlement(settlementId: string): Promise<Settlement>;
   sandboxReplayWebhook(deliveryId: string): Promise<{ duplicate: true; delivery: WebhookDelivery }>;
+
+  // Admin console (/admin). Separate session from merchants.
+  getAdminSession(): Promise<AdminSession | null>;
+  adminLogin(input: LoginInput): Promise<AdminSession>;
+  adminLogout(): Promise<void>;
+  adminOverview(): Promise<AdminOverview>;
+  adminListMerchants(): Promise<AdminMerchant[]>;
+  adminListUsers(): Promise<AdminUser[]>;
+  adminGetMerchant(id: string): Promise<AdminMerchantDetail>;
+  adminSetKycStatus(id: string, status: KycStatus): Promise<AdminMerchant>;
+  adminSetSuspended(id: string, suspended: boolean, reason: string): Promise<AdminMerchant>;
+  adminListPayments(): Promise<Payment[]>;
+  adminListSettlements(): Promise<Settlement[]>;
+  adminMarkSettlementPaid(id: string): Promise<Settlement>;
+  adminListAudit(): Promise<AdminAuditEntry[]>;
+}
+
+/* ── Admin console types ─────────────────────────────────────── */
+export interface AdminSession {
+  admin: { id: string; email: string; name: string };
+}
+
+export interface AdminMerchant extends Merchant {
+  suspended: boolean;
+  owner_email: string | null;
+  user_count: number;
+}
+
+export interface AdminAuditEntry {
+  id: string;
+  at: string;
+  actor: string;
+  action: string;
+  target_type: "merchant" | "settlement" | "session" | "user";
+  target_id: string | null;
+  summary: string;
+}
+
+export interface AdminUser {
+  id: string;
+  email: string;
+  merchant_id: string;
+  merchant_name: string;
+  kyc_status: KycStatus;
+  suspended: boolean;
+  created_at: string | null;
+  last_login_at: string | null;
+  login_count: number;
+}
+
+export interface AdminMerchantDetail {
+  merchant: AdminMerchant;
+  users: { id: string; email: string }[];
+  audit: AdminAuditEntry[];
+}
+
+export interface AdminOverview {
+  merchants_total: number;
+  merchants_pending_kyc: number;
+  merchants_suspended: number;
+  payments_succeeded: number;
+  payments_pending: number;
+  payments_failed: number;
+  gross_volume: Money;
+  fees_earned: Money;
+  settlements_pending: number;
+  settlements_pending_npr: Money;
+  recent_merchants: AdminMerchant[];
 }
 
 /** Error carrying the API's error shape (TRD §7). */

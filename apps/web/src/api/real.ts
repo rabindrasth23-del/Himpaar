@@ -115,5 +115,20 @@ export function createRealApi(baseUrl: string): HimpaarApi {
     sandboxCompletePending: () => notYet("Completing a pending payment"),
     sandboxAdvanceSettlement: () => notYet("Advancing a settlement"),
     sandboxReplayWebhook: () => notYet("Replaying a webhook"),
+
+    // Admin console: backend routes (/v1/admin/*) not built yet.
+    getAdminSession: async () => null,
+    adminLogin: () => notYet("Admin login"),
+    adminLogout: async () => {},
+    adminOverview: () => notYet("Admin overview"),
+    adminListMerchants: () => notYet("Admin merchants"),
+    adminListUsers: () => notYet("Admin users"),
+    adminGetMerchant: () => notYet("Admin merchant detail"),
+    adminSetKycStatus: () => notYet("Changing KYC status"),
+    adminSetSuspended: () => notYet("Suspending merchants"),
+    adminListPayments: () => notYet("Admin payments"),
+    adminListSettlements: () => notYet("Admin settlements"),
+    adminMarkSettlementPaid: () => notYet("Marking settlements paid"),
+    adminListAudit: () => notYet("Admin activity log"),
   };
 }

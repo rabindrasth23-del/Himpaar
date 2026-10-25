@@ -9,11 +9,18 @@ import {
   type WebhookDelivery,
   type WebhookEventType,
 } from "@himpaar/shared";
-import { HimpaarApiError, type HimpaarApi } from "../types.ts";
+import {
+  HimpaarApiError,
+  type AdminAuditEntry,
+  type AdminMerchant,
+  type AdminSession,
+  type HimpaarApi,
+} from "../types.ts";
 import { MOCK_FEE_BPS, MOCK_RATE_MICRO, createSeed, DEMO_EMAIL, type MockDb } from "./data.ts";
 import { kathmanduDate, kathmanduIso, mockAdToBs, mockSettlementMath, randomHex, randomToken } from "./helpers.ts";
 
 export const SESSION_KEY = "himpaar.mock.session";
+export const ADMIN_SESSION_KEY = "himpaar.mock.admin_session";
 export const DB_STORAGE_KEY = "himpaar.mock.db_v2";
 
 export interface MockOptions {
@@ -60,6 +67,10 @@ function loadStoredDb(storage: Pick<Storage, "getItem" | "setItem" | "removeItem
       seenEventIds: new Set(Array.isArray(parsed.seenEventIds) ? parsed.seenEventIds : []),
       counters:
         parsed.counters && typeof parsed.counters.id === "number" ? parsed.counters : seed.counters,
+      // Admin accounts always come from the seed so credentials can't drift in storage.
+      admins: seed.admins,
+      suspendedMerchantIds: Array.isArray(parsed.suspendedMerchantIds) ? parsed.suspendedMerchantIds : [],
+      audit: Array.isArray(parsed.audit) ? parsed.audit : seed.audit,
     };
   } catch {
     return seed;
@@ -86,6 +97,7 @@ export function resetMockStorage(
 ) {
   storage?.removeItem(DB_STORAGE_KEY);
   storage?.removeItem(SESSION_KEY);
+  storage?.removeItem(ADMIN_SESSION_KEY);
 }
 
 export function createMockApi(opts: MockOptions = {}): HimpaarApi & { db: MockDb; reset: () => void } {
@@ -117,7 +129,80 @@ export function createMockApi(opts: MockOptions = {}): HimpaarApi & { db: MockDb
     const user = db.users.find((u) => u.id === userId);
     const merchant = user && db.merchants.find((m) => m.id === user.merchant_id);
     if (!user || !merchant) return null;
+    // A suspended merchant is logged out on their next request.
+    if (db.suspendedMerchantIds.includes(merchant.id)) {
+      storage?.removeItem(SESSION_KEY);
+      return null;
+    }
     return { user: { id: user.id, email: user.email }, merchant };
+  }
+
+  function currentAdmin(): AdminSession | null {
+    const adminId = storage?.getItem(ADMIN_SESSION_KEY);
+    if (!adminId) return null;
+    const a = db.admins.find((x) => x.id === adminId);
+    return a ? { admin: { id: a.id, email: a.email, name: a.name } } : null;
+  }
+
+  function requireAdmin(): AdminSession {
+    const a = currentAdmin();
+    if (!a) throw new HimpaarApiError({ code: "UNAUTHENTICATED", message: "Admin login required", status: 401 });
+    return a;
+  }
+
+  function audit(actor: string, entry: Omit<AdminAuditEntry, "id" | "at" | "actor">): void {
+    db.audit.unshift({ id: nextId("aud"), at: kathmanduIso(), actor, ...entry });
+  }
+
+  function toAdminMerchant(m: MockDb["merchants"][number]): AdminMerchant {
+    const users = db.users.filter((u) => u.merchant_id === m.id);
+    return {
+      ...m,
+      suspended: db.suspendedMerchantIds.includes(m.id),
+      owner_email: users[0]?.email ?? null,
+      user_count: users.length,
+    };
+  }
+
+  function findMerchant(id: string) {
+    const m = db.merchants.find((x) => x.id === id);
+    if (!m) throw notFound("Merchant");
+    return m;
+  }
+
+  /** Settle a pending settlement and generate its document (shared by sandbox + admin). */
+  function settle(st: Settlement, merchantName: string, merchantPanVat: string | null): Settlement {
+    if (st.status !== "pending") {
+      throw new HimpaarApiError({ code: "ILLEGAL_TRANSITION", message: `Cannot settle a ${st.status} settlement`, status: 409 });
+    }
+    st.status = "settled";
+    st.settled_at = kathmanduIso();
+    const payment = db.payments.find((p) => p.id === st.payment_id);
+    const today = kathmanduDate();
+    db.documents.unshift({
+      id: nextId("doc"),
+      settlement_id: st.id,
+      title: DOCUMENT_TITLE,
+      status: "generated",
+      merchant_name: merchantName,
+      merchant_pan_vat: merchantPanVat,
+      payer_name: payment?.payer_name ?? "Payer",
+      payer_country: payment?.payer_country ?? "US",
+      invoice_reference: st.reference,
+      gross: st.gross,
+      fee: st.fee,
+      rate_micro: st.rate_micro,
+      rate_label: "simulated",
+      net_npr: st.net_npr,
+      created_at: st.settled_at,
+      created_at_bs: mockAdToBs(today) ?? "0000-00-00",
+      fiscal_year_label: "2083/84",
+      sha256: randomHex(32),
+    });
+    queueWebhook("settlement.settled");
+    queueWebhook("document.created");
+    persistDb(db, storage);
+    return { ...st };
   }
 
   function requireSession(): Session {
@@ -197,8 +282,24 @@ export function createMockApi(opts: MockOptions = {}): HimpaarApi & { db: MockDb
       wait(() => {
         const user = db.users.find((u) => u.email.toLowerCase() === input.email.toLowerCase());
         if (!user || user.password !== input.password) {
+          if (user) {
+            audit(user.email, { action: "user.login_failed", target_type: "user", target_id: user.id, summary: "Failed login (wrong password)" });
+            persistDb(db, storage);
+          }
           throw new HimpaarApiError({ code: "INVALID_CREDENTIALS", message: "Email or password is incorrect", status: 401 });
         }
+        if (db.suspendedMerchantIds.includes(user.merchant_id)) {
+          audit(user.email, { action: "user.login_blocked", target_type: "user", target_id: user.id, summary: "Login blocked: account suspended" });
+          persistDb(db, storage);
+          throw new HimpaarApiError({
+            code: "MERCHANT_SUSPENDED",
+            message: "This account is suspended. Contact support@himpaar.com.",
+            status: 403,
+          });
+        }
+        user.last_login_at = kathmanduIso();
+        user.login_count = (user.login_count ?? 0) + 1;
+        audit(user.email, { action: "user.login", target_type: "user", target_id: user.id, summary: "Logged in" });
         storage?.setItem(SESSION_KEY, user.id);
         persistDb(db, storage);
         return requireSession();
@@ -219,7 +320,22 @@ export function createMockApi(opts: MockOptions = {}): HimpaarApi & { db: MockDb
           created_at: kathmanduIso(),
         });
         const userId = nextId("usr");
-        db.users.push({ id: userId, email: input.email, password: input.password, merchant_id: merchantId });
+        const now = kathmanduIso();
+        db.users.push({
+          id: userId,
+          email: input.email,
+          password: input.password,
+          merchant_id: merchantId,
+          created_at: now,
+          last_login_at: now,
+          login_count: 1,
+        });
+        audit(input.email, {
+          action: "user.signup",
+          target_type: "merchant",
+          target_id: merchantId,
+          summary: `Signed up — ${input.company_name}`,
+        });
         storage?.setItem(SESSION_KEY, userId);
         persistDb(db, storage);
         return requireSession();
@@ -239,6 +355,12 @@ export function createMockApi(opts: MockOptions = {}): HimpaarApi & { db: MockDb
         m.registration_number = input.registration_number;
         m.pan_vat = input.pan_vat;
         m.kyc_status = "approved_sandbox"; // simulated: nothing is checked
+        audit(s.user.email, {
+          action: "user.kyc_submitted",
+          target_type: "merchant",
+          target_id: m.id,
+          summary: `Submitted KYC — PAN/VAT ${input.pan_vat}`,
+        });
         persistDb(db, storage);
         return { ...m };
       }),
@@ -254,7 +376,7 @@ export function createMockApi(opts: MockOptions = {}): HimpaarApi & { db: MockDb
 
     createPaymentLink: (input, idempotencyKey) =>
       wait(() => {
-        requireSession();
+        const session = requireSession();
         if (!idempotencyKey) {
           throw new HimpaarApiError({ code: "IDEMPOTENCY_KEY_REQUIRED", message: "Idempotency-Key header is required", status: 400 });
         }
@@ -277,6 +399,12 @@ export function createMockApi(opts: MockOptions = {}): HimpaarApi & { db: MockDb
           expired_at: null,
           cancelled_at: null,
         };
+        audit(session.user.email, {
+          action: "user.link_created",
+          target_type: "merchant",
+          target_id: session.merchant.id,
+          summary: `Created payment link ${l.reference}`,
+        });
         db.links.push(l);
         persistDb(db, storage);
         return { ...l };
@@ -443,37 +571,7 @@ export function createMockApi(opts: MockOptions = {}): HimpaarApi & { db: MockDb
         const s = requireSession();
         const st = db.settlements.find((x) => x.id === settlementId);
         if (!st) throw notFound("Settlement");
-        if (st.status !== "pending") {
-          throw new HimpaarApiError({ code: "ILLEGAL_TRANSITION", message: `Cannot settle a ${st.status} settlement`, status: 409 });
-        }
-        st.status = "settled";
-        st.settled_at = kathmanduIso();
-        const payment = db.payments.find((p) => p.id === st.payment_id);
-        const today = kathmanduDate();
-        db.documents.unshift({
-          id: nextId("doc"),
-          settlement_id: st.id,
-          title: DOCUMENT_TITLE,
-          status: "generated",
-          merchant_name: s.merchant.name,
-          merchant_pan_vat: s.merchant.pan_vat,
-          payer_name: payment?.payer_name ?? "Payer",
-          payer_country: payment?.payer_country ?? "US",
-          invoice_reference: st.reference,
-          gross: st.gross,
-          fee: st.fee,
-          rate_micro: st.rate_micro,
-          rate_label: "simulated",
-          net_npr: st.net_npr,
-          created_at: st.settled_at,
-          created_at_bs: mockAdToBs(today) ?? "0000-00-00",
-          fiscal_year_label: "2083/84",
-          sha256: randomHex(32),
-        });
-        queueWebhook("settlement.settled");
-        queueWebhook("document.created");
-        persistDb(db, storage);
-        return { ...st };
+        return settle(st, s.merchant.name, s.merchant.pan_vat);
       }),
 
     sandboxReplayWebhook: (deliveryId) =>
@@ -483,5 +581,153 @@ export function createMockApi(opts: MockOptions = {}): HimpaarApi & { db: MockDb
         if (!d) throw notFound("Delivery");
         return { duplicate: true as const, delivery: { ...d } };
       }),
+
+    /* ── Admin console ─────────────────────────────────────────── */
+    getAdminSession: () => wait(() => currentAdmin()),
+
+    adminLogin: async (input) => {
+      const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(input.password));
+      const hash = Array.from(new Uint8Array(digest), (b) => b.toString(16).padStart(2, "0")).join("");
+      return wait(() => {
+        const a = db.admins.find((x) => x.email.toLowerCase() === input.email.trim().toLowerCase());
+        if (!a || a.password_sha256 !== hash) {
+          throw new HimpaarApiError({ code: "INVALID_CREDENTIALS", message: "Email or password is incorrect", status: 401 });
+        }
+        storage?.setItem(ADMIN_SESSION_KEY, a.id);
+        audit(a.email, { action: "admin.login", target_type: "session", target_id: null, summary: "Signed in to admin console" });
+        persistDb(db, storage);
+        return requireAdmin();
+      });
+    },
+
+    adminListUsers: () =>
+      wait(() => {
+        requireAdmin();
+        return db.users
+          .map((u) => {
+            const m = db.merchants.find((x) => x.id === u.merchant_id);
+            return {
+              id: u.id,
+              email: u.email,
+              merchant_id: u.merchant_id,
+              merchant_name: m?.name ?? "—",
+              kyc_status: m?.kyc_status ?? ("not_submitted" as const),
+              suspended: db.suspendedMerchantIds.includes(u.merchant_id),
+              created_at: u.created_at ?? m?.created_at ?? null,
+              last_login_at: u.last_login_at ?? null,
+              login_count: u.login_count ?? 0,
+            };
+          })
+          .sort((a, b) => (b.created_at ?? "").localeCompare(a.created_at ?? ""));
+      }),
+
+    adminLogout: () =>
+      wait(() => {
+        storage?.removeItem(ADMIN_SESSION_KEY);
+      }),
+
+    adminOverview: () =>
+      wait(() => {
+        requireAdmin();
+        const sum = (xs: { amount_minor: string }[]) => xs.reduce((t, m) => t + BigInt(m.amount_minor), 0n).toString();
+        const succeeded = db.payments.filter((p) => p.status === "succeeded");
+        const pendingSt = db.settlements.filter((s) => s.status === "pending");
+        return {
+          merchants_total: db.merchants.length,
+          merchants_pending_kyc: db.merchants.filter((m) => m.kyc_status !== "approved_sandbox").length,
+          merchants_suspended: db.suspendedMerchantIds.length,
+          payments_succeeded: succeeded.length,
+          payments_pending: db.payments.filter((p) => p.status === "pending").length,
+          payments_failed: db.payments.filter((p) => p.status === "failed").length,
+          gross_volume: { amount_minor: sum(succeeded.map((p) => p.amount)), currency: "USD" as const },
+          fees_earned: { amount_minor: sum(db.settlements.map((s) => s.fee)), currency: "USD" as const },
+          settlements_pending: pendingSt.length,
+          settlements_pending_npr: { amount_minor: sum(pendingSt.map((s) => s.net_npr)), currency: "NPR" as const },
+          recent_merchants: [...db.merchants]
+            .sort((a, b) => b.created_at.localeCompare(a.created_at))
+            .slice(0, 5)
+            .map(toAdminMerchant),
+        };
+      }),
+
+    adminListMerchants: () =>
+      wait(() => {
+        requireAdmin();
+        return [...db.merchants].sort((a, b) => b.created_at.localeCompare(a.created_at)).map(toAdminMerchant);
+      }),
+
+    adminGetMerchant: (id) =>
+      wait(() => {
+        requireAdmin();
+        const m = findMerchant(id);
+        const users = db.users.filter((u) => u.merchant_id === id);
+        const ids = new Set([id, ...users.map((u) => u.id)]);
+        return {
+          merchant: toAdminMerchant(m),
+          users: users.map((u) => ({ id: u.id, email: u.email })),
+          audit: db.audit.filter((a) => a.target_id !== null && ids.has(a.target_id)),
+        };
+      }),
+
+    adminSetKycStatus: (id, status) =>
+      wait(() => {
+        const { admin } = requireAdmin();
+        const m = findMerchant(id);
+        if (m.kyc_status !== status) {
+          m.kyc_status = status;
+          audit(admin.email, {
+            action: status === "approved_sandbox" ? "kyc.approved" : "kyc.revoked",
+            target_type: "merchant",
+            target_id: id,
+            summary: `${status === "approved_sandbox" ? "Approved" : "Revoked"} KYC for ${m.name}`,
+          });
+          persistDb(db, storage);
+        }
+        return toAdminMerchant(m);
+      }),
+
+    adminSetSuspended: (id, suspended, reason) =>
+      wait(() => {
+        const { admin } = requireAdmin();
+        const m = findMerchant(id);
+        const isSuspended = db.suspendedMerchantIds.includes(id);
+        if (suspended !== isSuspended) {
+          db.suspendedMerchantIds = suspended
+            ? [...db.suspendedMerchantIds, id]
+            : db.suspendedMerchantIds.filter((x) => x !== id);
+          const why = reason.trim();
+          audit(admin.email, {
+            action: suspended ? "merchant.suspended" : "merchant.reactivated",
+            target_type: "merchant",
+            target_id: id,
+            summary: `${suspended ? "Suspended" : "Reactivated"} ${m.name}${why ? ` — ${why}` : ""}`,
+          });
+          persistDb(db, storage);
+        }
+        return toAdminMerchant(m);
+      }),
+
+    adminListPayments: () => wait(() => (requireAdmin(), [...db.payments])),
+    adminListSettlements: () => wait(() => (requireAdmin(), [...db.settlements])),
+
+    adminMarkSettlementPaid: (id) =>
+      wait(() => {
+        const { admin } = requireAdmin();
+        const st = db.settlements.find((x) => x.id === id);
+        if (!st) throw notFound("Settlement");
+        // Mock links aren't scoped per merchant yet; attribute to the first merchant like the payer page does.
+        const m = db.merchants[0];
+        const result = settle(st, m?.name ?? "Merchant", m?.pan_vat ?? null);
+        audit(admin.email, {
+          action: "settlement.paid_out",
+          target_type: "settlement",
+          target_id: id,
+          summary: `Marked ${st.reference} paid out (simulated)`,
+        });
+        persistDb(db, storage);
+        return result;
+      }),
+
+    adminListAudit: () => wait(() => (requireAdmin(), [...db.audit])),
   };
 }

@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { DashboardLayout, RequireSession } from "./layouts/dashboard-layout.tsx";
 import { AuthLayout } from "./layouts/auth-layout.tsx";
+import { AdminLayout, RequireAdmin } from "./layouts/admin-layout.tsx";
 import { LandingPage } from "./pages/landing.tsx";
 import { LoginPage } from "./pages/auth/login.tsx";
 import { SignupPage } from "./pages/auth/signup.tsx";
@@ -21,6 +22,14 @@ import { SandboxPage } from "./pages/dashboard/sandbox.tsx";
 import { RoadmapPage } from "./pages/dashboard/roadmap.tsx";
 import { KycPage } from "./pages/dashboard/kyc.tsx";
 import { PayerPage } from "./pages/payer.tsx";
+import { AdminLoginPage } from "./pages/admin/login.tsx";
+import { AdminOverviewPage } from "./pages/admin/overview.tsx";
+import { AdminMerchantsPage } from "./pages/admin/merchants.tsx";
+import { AdminMerchantDetailPage } from "./pages/admin/merchant-detail.tsx";
+import { AdminUsersPage } from "./pages/admin/users.tsx";
+import { AdminPaymentsPage } from "./pages/admin/payments.tsx";
+import { AdminSettlementsPage } from "./pages/admin/settlements.tsx";
+import { AdminAuditPage } from "./pages/admin/audit.tsx";
 import { ApiContext, createApi } from "./api/index.ts";
 import { ToastProvider } from "./components/toast.tsx";
 
@@ -82,6 +91,25 @@ export function App() {
                 <Route path="api-keys" element={<Navigate to="/dashboard/developers" replace />} />
               </Route>
 
+              {/* Admin routes */}
+              <Route path="/admin/login" element={<AdminLoginPage />} />
+              <Route
+                path="/admin"
+                element={
+                  <RequireAdmin>
+                    <AdminLayout />
+                  </RequireAdmin>
+                }
+              >
+                <Route index element={<AdminOverviewPage />} />
+                <Route path="merchants" element={<AdminMerchantsPage />} />
+                <Route path="merchants/:id" element={<AdminMerchantDetailPage />} />
+                <Route path="users" element={<AdminUsersPage />} />
+                <Route path="payments" element={<AdminPaymentsPage />} />
+                <Route path="settlements" element={<AdminSettlementsPage />} />
+                <Route path="audit" element={<AdminAuditPage />} />
+              </Route>
+
               {/* Catch-all */}
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
@@ -91,3 +119,4 @@ export function App() {
     </QueryClientProvider>
   );
 }
+

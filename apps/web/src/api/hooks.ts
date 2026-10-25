@@ -25,6 +25,15 @@ export const qk = {
   endpoints: ["webhook-endpoints"] as const,
   deliveries: ["webhook-deliveries"] as const,
   publicLink: (token: string) => ["public-link", token] as const,
+  // Admin
+  adminSession: ["admin-session"] as const,
+  adminOverview: ["admin-overview"] as const,
+  adminMerchants: ["admin-merchants"] as const,
+  adminUsers: ["admin-users"] as const,
+  adminMerchant: (id: string) => ["admin-merchants", id] as const,
+  adminPayments: ["admin-payments"] as const,
+  adminSettlements: ["admin-settlements"] as const,
+  adminAudit: ["admin-audit"] as const,
 };
 
 /* ── Session ─────────────────────────────────────────────────── */
@@ -214,4 +223,111 @@ export function useSandboxAdvanceSettlement() {
 export function useSandboxReplayWebhook() {
   const api = useApi();
   return useMutation({ mutationFn: (id: string) => api.sandboxReplayWebhook(id) });
+}
+
+/* ── Admin hooks ─────────────────────────────────────────────── */
+export function useAdminSession() {
+  const api = useApi();
+  return useQuery({ queryKey: qk.adminSession, queryFn: () => api.getAdminSession(), staleTime: Infinity, retry: false });
+}
+
+export function useAdminLogin() {
+  const api = useApi();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: LoginInput) => api.adminLogin(input),
+    onSuccess: (s) => qc.setQueryData(qk.adminSession, s),
+  });
+}
+
+export function useAdminLogout() {
+  const api = useApi();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => api.adminLogout(),
+    onSuccess: () => {
+      qc.setQueryData(qk.adminSession, null);
+      qc.removeQueries({ queryKey: ["admin-overview"] });
+      qc.removeQueries({ queryKey: ["admin-merchants"] });
+      qc.removeQueries({ queryKey: ["admin-users"] });
+      qc.removeQueries({ queryKey: ["admin-audit"] });
+    },
+  });
+}
+
+export function useAdminOverview() {
+  const api = useApi();
+  return useQuery({ queryKey: qk.adminOverview, queryFn: () => api.adminOverview() });
+}
+
+export const useAdminMerchants = () => {
+  const api = useApi();
+  return useQuery({ queryKey: qk.adminMerchants, queryFn: () => api.adminListMerchants() });
+};
+
+export const useAdminUsers = () => {
+  const api = useApi();
+  return useQuery({ queryKey: qk.adminUsers, queryFn: () => api.adminListUsers() });
+};
+
+export const useAdminMerchant = (id: string) => {
+  const api = useApi();
+  return useQuery({ queryKey: qk.adminMerchant(id), queryFn: () => api.adminGetMerchant(id) });
+};
+
+export const useAdminPayments = () => {
+  const api = useApi();
+  return useQuery({ queryKey: qk.adminPayments, queryFn: () => api.adminListPayments() });
+};
+
+export const useAdminSettlements = () => {
+  const api = useApi();
+  return useQuery({ queryKey: qk.adminSettlements, queryFn: () => api.adminListSettlements() });
+};
+
+export const useAdminAudit = () => {
+  const api = useApi();
+  return useQuery({ queryKey: qk.adminAudit, queryFn: () => api.adminListAudit() });
+};
+
+export function useAdminSetKycStatus() {
+  const api = useApi();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, status }: { id: string; status: "not_submitted" | "approved_sandbox" }) =>
+      api.adminSetKycStatus(id, status),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: qk.adminMerchants });
+      qc.invalidateQueries({ queryKey: qk.adminUsers });
+      qc.invalidateQueries({ queryKey: qk.adminOverview });
+    },
+  });
+}
+
+export function useAdminSetSuspended() {
+  const api = useApi();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, suspended, reason }: { id: string; suspended: boolean; reason: string }) =>
+      api.adminSetSuspended(id, suspended, reason),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: qk.adminMerchants });
+      qc.invalidateQueries({ queryKey: qk.adminUsers });
+      qc.invalidateQueries({ queryKey: qk.adminOverview });
+      qc.invalidateQueries({ queryKey: qk.adminAudit });
+    },
+  });
+}
+
+export function useAdminMarkSettlementPaid() {
+  const api = useApi();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.adminMarkSettlementPaid(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: qk.adminSettlements });
+      qc.invalidateQueries({ queryKey: qk.adminOverview });
+      qc.invalidateQueries({ queryKey: qk.adminAudit });
+    },
+  });
 }

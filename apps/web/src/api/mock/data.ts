@@ -19,7 +19,13 @@ export const MOCK_RATE_MICRO = "134250000"; // NPR 134.25 per USD, simulated
 export const MOCK_FEE_BPS = 100; // 1%, simulated (UNVERIFIED_DEMO_FEE_BPS)
 
 export interface MockDb {
-  users: (User & { password: string; merchant_id: string })[];
+  users: (User & {
+    password: string;
+    merchant_id: string;
+    created_at?: string;
+    last_login_at?: string | null;
+    login_count?: number;
+  })[];
   merchants: Merchant[];
   links: PaymentLink[];
   payments: Payment[];
@@ -30,7 +36,24 @@ export interface MockDb {
   deliveries: WebhookDelivery[];
   seenEventIds: Set<string>;
   counters: { invoice: number; id: number };
+  /** Admin console accounts. Only a SHA-256 of the password is kept: this bundle is public. */
+  admins: { id: string; email: string; name: string; password_sha256: string }[];
+  /** Merchant ids an admin has suspended. Suspended merchants cannot log in. */
+  suspendedMerchantIds: string[];
+  /** Admin actions and user activity (signups, logins, KYC, links), newest first. */
+  audit: {
+    id: string;
+    at: string;
+    actor: string;
+    action: string;
+    target_type: "merchant" | "settlement" | "session" | "user";
+    target_id: string | null;
+    summary: string;
+  }[];
 }
+
+export const ADMIN_EMAIL = "rabindra23@gmail.com";
+const ADMIN_PASSWORD_SHA256 = "0e968b4087016d51055cfc26fd6df64b3f05d658a10fbd91efe24698d3453291";
 
 const usd = (amount_minor: string) => ({ amount_minor, currency: "USD" as const });
 const npr = (amount_minor: string) => ({ amount_minor, currency: "NPR" as const });
@@ -158,7 +181,17 @@ export function createSeed(): MockDb {
   ];
 
   return {
-    users: [{ id: "usr_0001", email: DEMO_EMAIL, password: DEMO_PASSWORD, merchant_id: merchant.id }],
+    users: [
+      {
+        id: "usr_0001",
+        email: DEMO_EMAIL,
+        password: DEMO_PASSWORD,
+        merchant_id: merchant.id,
+        created_at: merchant.created_at,
+        last_login_at: "2026-10-12T09:40:00+05:45",
+        login_count: 7,
+      },
+    ],
     merchants: [merchant],
     links,
     payments,
@@ -169,5 +202,18 @@ export function createSeed(): MockDb {
     deliveries,
     seenEventIds: new Set(),
     counters: { invoice: 6, id: 100 },
+    admins: [{ id: "adm_0001", email: ADMIN_EMAIL, name: "Rabindra", password_sha256: ADMIN_PASSWORD_SHA256 }],
+    suspendedMerchantIds: [],
+    audit: [
+      {
+        id: "aud_0001",
+        at: "2026-09-28T09:05:00+05:45",
+        actor: ADMIN_EMAIL,
+        action: "kyc.approved",
+        target_type: "merchant",
+        target_id: merchant.id,
+        summary: `Approved KYC for ${merchant.name}`,
+      },
+    ],
   };
 }

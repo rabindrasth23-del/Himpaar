@@ -75,7 +75,18 @@ function Reveal({
   );
 }
 
-// ── Interactive 3D Cobe Globe (Clean Light/Fintech Style) ────
+// ── Interactive 3D Cobe Globe with Floating Location Labels ────
+const GLOBE_LOCATIONS = [
+  { name: "New York", flag: "🇺🇸", lat: 40.7128, lng: -74.006, angle: 0, radius: 52, speed: 18 },
+  { name: "San Francisco", flag: "🇺🇸", lat: 37.7749, lng: -122.4194, angle: 45, radius: 50, speed: 22 },
+  { name: "London", flag: "🇬🇧", lat: 51.5074, lng: -0.1278, angle: 90, radius: 48, speed: 20 },
+  { name: "Singapore", flag: "🇸🇬", lat: 1.3521, lng: 103.8198, angle: 135, radius: 51, speed: 24 },
+  { name: "Tokyo", flag: "🇯🇵", lat: 35.6762, lng: 139.6503, angle: 180, radius: 49, speed: 19 },
+  { name: "Dubai", flag: "🇦🇪", lat: 25.2048, lng: 55.2708, angle: 225, radius: 53, speed: 21 },
+  { name: "Sydney", flag: "🇦🇺", lat: -33.8688, lng: 151.2093, angle: 270, radius: 50, speed: 23 },
+  { name: "Berlin", flag: "🇩🇪", lat: 52.52, lng: 13.405, angle: 315, radius: 47, speed: 17 },
+];
+
 function InteractiveGlobe() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [webGlSupported, setWebGlSupported] = useState(true);
@@ -102,7 +113,7 @@ function InteractiveGlobe() {
         height: width * 2,
         phi: 0.45,
         theta: 0.28,
-        dark: 0, // Clean light mode
+        dark: 0,
         diffuse: 1.4,
         mapSamples: 16000,
         mapBrightness: 6,
@@ -111,28 +122,13 @@ function InteractiveGlobe() {
         markerColor: [0.15, 0.45, 0.95],
         glowColor: [0.88, 0.92, 0.98],
         markers: [
-          // Kathmandu, Nepal (Hub)
           { location: [27.7172, 85.324], size: 0.13 },
-          // Key export client hubs
-          { location: [40.7128, -74.006], size: 0.06 }, // New York
-          { location: [37.7749, -122.4194], size: 0.05 }, // San Francisco
-          { location: [51.5074, -0.1278], size: 0.06 }, // London
-          { location: [1.3521, 103.8198], size: 0.06 }, // Singapore
-          { location: [35.6762, 139.6503], size: 0.05 }, // Tokyo
-          { location: [25.2048, 55.2708], size: 0.06 }, // Dubai
-          { location: [-33.8688, 151.2093], size: 0.05 }, // Sydney
-          { location: [52.52, 13.405], size: 0.05 }, // Berlin
+          ...GLOBE_LOCATIONS.map((l) => ({ location: [l.lat, l.lng] as [number, number], size: 0.06 })),
         ],
-        arcs: [
-          { from: [40.7128, -74.006], to: [27.7172, 85.324] },
-          { from: [37.7749, -122.4194], to: [27.7172, 85.324] },
-          { from: [51.5074, -0.1278], to: [27.7172, 85.324] },
-          { from: [1.3521, 103.8198], to: [27.7172, 85.324] },
-          { from: [35.6762, 139.6503], to: [27.7172, 85.324] },
-          { from: [25.2048, 55.2708], to: [27.7172, 85.324] },
-          { from: [-33.8688, 151.2093], to: [27.7172, 85.324] },
-          { from: [52.52, 13.405], to: [27.7172, 85.324] },
-        ],
+        arcs: GLOBE_LOCATIONS.map((l) => ({
+          from: [l.lat, l.lng] as [number, number],
+          to: [27.7172, 85.324] as [number, number],
+        })),
         arcColor: [0.2, 0.45, 0.95],
         arcWidth: 1.5,
         arcHeight: 0.38,
@@ -140,9 +136,7 @@ function InteractiveGlobe() {
 
       const loop = () => {
         phi += 0.0035;
-        if (globe) {
-          globe.update({ phi });
-        }
+        if (globe) globe.update({ phi });
         animId = requestAnimationFrame(loop);
       };
       animId = requestAnimationFrame(loop);
@@ -170,23 +164,68 @@ function InteractiveGlobe() {
   }
 
   return (
-    <div className="relative flex aspect-square w-full max-w-[480px] items-center justify-center">
+    <div className="relative flex aspect-square w-full max-w-[520px] items-center justify-center">
       <div className="pointer-events-none absolute inset-0 rounded-full bg-blue-50/50 blur-2xl" />
       <canvas
         ref={canvasRef}
-        className="h-full w-full contain-strict"
-        style={{ width: "100%", height: "100%" }}
+        className="h-[85%] w-[85%] contain-strict"
+        style={{ width: "85%", height: "85%" }}
       />
-      {/* Kathmandu Nexus Tag */}
-      <div className="pointer-events-none absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2 rounded-full border border-slate-200 bg-white/95 px-4 py-1.5 shadow-sm backdrop-blur-md">
-        <span className="relative flex h-2.5 w-2.5">
-          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-blue-500 opacity-75" />
-          <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-blue-600" />
-        </span>
-        <span className="text-xs font-bold text-slate-900">
-          Kathmandu Hub <span className="font-normal text-slate-500">• 27.71° N, 85.32° E</span>
-        </span>
+
+      {/* Floating orbiting location labels */}
+      {GLOBE_LOCATIONS.map((loc, i) => (
+        <div
+          key={loc.name}
+          className="pointer-events-none absolute"
+          style={{
+            animation: `globe-orbit-${i} ${loc.speed}s linear infinite`,
+            animationDelay: `${-loc.speed * (loc.angle / 360)}s`,
+          }}
+        >
+          <div
+            className="flex items-center gap-1 whitespace-nowrap rounded-full border border-slate-200/80 bg-white/90 px-2.5 py-1 text-[10px] font-bold text-slate-700 shadow-sm backdrop-blur-sm"
+            style={{
+              animation: `globe-fade ${loc.speed}s ease-in-out infinite`,
+              animationDelay: `${-loc.speed * (loc.angle / 360)}s`,
+            }}
+          >
+            <span>{loc.flag}</span>
+            <span>{loc.name}</span>
+          </div>
+        </div>
+      ))}
+
+      {/* Kathmandu Hub center label */}
+      <div className="pointer-events-none absolute bottom-[6%] left-1/2 -translate-x-1/2 z-10">
+        <div className="flex items-center gap-2 rounded-full border border-blue-200 bg-white/95 px-4 py-1.5 shadow-md backdrop-blur-md">
+          <span className="relative flex h-2.5 w-2.5">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-blue-500 opacity-75" />
+            <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-blue-600" />
+          </span>
+          <span className="text-xs font-bold text-slate-900">
+            🇳🇵 Kathmandu Hub <span className="font-normal text-slate-500">• Settlement Nexus</span>
+          </span>
+        </div>
       </div>
+
+      {/* CSS Keyframes for orbital animations — pre-computed for browser compat */}
+      <style>{`
+        ${GLOBE_LOCATIONS.map((loc, i) => {
+          const r = loc.radius;
+          const a = (loc.angle * Math.PI) / 180;
+          const steps = [0, 90, 180, 270, 360].map((deg) => {
+            const rad = a + (deg * Math.PI) / 180;
+            return `${(deg / 360) * 100}% { transform: translate(${(r * Math.cos(rad)).toFixed(1)}%, ${(r * Math.sin(rad)).toFixed(1)}%); }`;
+          });
+          return `@keyframes globe-orbit-${i} { ${steps.join(" ")} }`;
+        }).join("\n        ")}
+        @keyframes globe-fade {
+          0%, 100% { opacity: 0.45; }
+          25% { opacity: 1; }
+          50% { opacity: 0.65; }
+          75% { opacity: 1; }
+        }
+      `}</style>
     </div>
   );
 }
