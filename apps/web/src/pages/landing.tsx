@@ -123,24 +123,24 @@ function InteractiveGlobe() {
         height: width * 2,
         phi: 0.45,
         theta: 0.25,
-        dark: 1,           // Dark mode — shows ocean as dark blue
-        diffuse: 1.2,
-        mapSamples: 20000,
-        mapBrightness: 8,
-        mapBaseBrightness: 0.05,
-        baseColor: [0.1, 0.2, 0.45],       // Deep ocean blue
-        markerColor: [0.2, 0.9, 0.5],      // Bright green markers
-        glowColor: [0.15, 0.3, 0.6],       // Blue atmospheric glow
+        dark: 0.1,          // Slight dark for contrast but still colorful
+        diffuse: 2.0,
+        mapSamples: 24000,
+        mapBrightness: 12,
+        mapBaseBrightness: 0.1,
+        baseColor: [0.15, 0.4, 0.8],      // Bright ocean blue
+        markerColor: [1, 0.3, 0.2],       // Red-orange markers (stand out)
+        glowColor: [0.3, 0.5, 1.0],       // Blue atmospheric glow
         markers: [
           { location: [27.7172, 85.324], size: 0.12 },
-          ...GLOBE_LOCATIONS.map((l) => ({ location: [l.lat, l.lng] as [number, number], size: 0.06 })),
+          ...GLOBE_LOCATIONS.map((l) => ({ location: [l.lat, l.lng] as [number, number], size: 0.07 })),
         ],
         arcs: GLOBE_LOCATIONS.map((l) => ({
           from: [l.lat, l.lng] as [number, number],
           to: [27.7172, 85.324] as [number, number],
         })),
-        arcColor: [0.3, 0.8, 0.5],
-        arcWidth: 1.2,
+        arcColor: [0.2, 0.8, 0.4],
+        arcWidth: 1.5,
         arcHeight: 0.35,
       });
 
@@ -174,7 +174,7 @@ function InteractiveGlobe() {
 
   return (
     <div className="relative flex aspect-square w-full max-w-[480px] items-center justify-center">
-      <div className="pointer-events-none absolute inset-0 rounded-full bg-blue-900/20 blur-3xl" />
+      <div className="pointer-events-none absolute inset-0 rounded-full bg-blue-400/20 blur-3xl" />
       <canvas
         ref={canvasRef}
         className="h-[92%] w-[92%] contain-strict"
@@ -197,8 +197,8 @@ function InteractiveGlobe() {
               animationDelay: `${pos.delay}s`,
             }}
           >
-            <div className="flex items-center gap-1 whitespace-nowrap rounded-full border border-white/20 bg-slate-900/80 px-2 py-0.5 text-[10px] font-bold text-white shadow-lg backdrop-blur-sm">
-              <span className="text-[9px]">{loc.flag}</span>
+            <div className="flex items-center gap-1 whitespace-nowrap rounded-full border border-blue-200 bg-white/95 px-2.5 py-1 text-[10px] font-bold text-slate-800 shadow-md backdrop-blur-sm">
+              <span>{loc.flag}</span>
               <span>{loc.name}</span>
             </div>
           </div>
@@ -207,13 +207,13 @@ function InteractiveGlobe() {
 
       {/* Kathmandu Hub center label */}
       <div className="pointer-events-none absolute bottom-[2%] left-1/2 -translate-x-1/2 z-10">
-        <div className="flex items-center gap-2 rounded-full border border-emerald-500/40 bg-slate-900/90 px-3 py-1.5 shadow-lg shadow-emerald-500/10 backdrop-blur-md">
+        <div className="flex items-center gap-2 rounded-full border border-blue-300 bg-white/95 px-4 py-1.5 shadow-lg backdrop-blur-md">
           <span className="relative flex h-2.5 w-2.5">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-            <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500" />
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-500 opacity-75" />
+            <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-red-500" />
           </span>
-          <span className="text-[11px] font-bold text-white">
-            🇳🇵 Kathmandu <span className="font-normal text-emerald-300">• Hub</span>
+          <span className="text-[11px] font-bold text-slate-900">
+            🇳🇵 Kathmandu Hub <span className="font-normal text-blue-600">• Nepal</span>
           </span>
         </div>
       </div>
@@ -1603,7 +1603,9 @@ export function LandingPage() {
             {/* Brand Column */}
             <div className="md:col-span-5 space-y-4">
               <div className="flex items-center gap-3">
-                <HimpaarMark className="h-8 w-8 brightness-0 invert" />
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-white">
+                  <HimpaarMark className="h-6 w-6" />
+                </div>
                 <span className="font-display text-2xl font-black tracking-tight text-white">
                   Himpaar
                 </span>
