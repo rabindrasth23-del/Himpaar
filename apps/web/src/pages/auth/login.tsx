@@ -19,17 +19,21 @@ export function LoginPage() {
     register,
     handleSubmit,
     setValue,
-    formState: { errors },
+    formState: { errors, isSubmitting },
   } = useForm<LoginInput>({ resolver: zodResolver(LoginInputSchema), mode: "onTouched" });
 
   const onSubmit = handleSubmit((values) =>
-    login.mutate(values, { onSuccess: () => navigate(from, { replace: true }) }),
+    login.mutate(values, {
+      onSuccess: () => navigate(from, { replace: true }),
+    }),
   );
 
   const useDemo = () => {
     setValue("email", DEMO_EMAIL, { shouldValidate: true });
     setValue("password", DEMO_PASSWORD, { shouldValidate: true });
   };
+
+  const isLoading = login.isPending || isSubmitting;
 
   return (
     <>
@@ -57,6 +61,7 @@ export function LoginPage() {
             autoComplete="email"
             placeholder="you@company.com"
             invalid={!!errors.email}
+            disabled={isLoading}
             aria-describedby={errors.email ? "login-email-error" : undefined}
             {...register("email")}
           />
@@ -67,19 +72,26 @@ export function LoginPage() {
             type="password"
             autoComplete="current-password"
             invalid={!!errors.password}
+            disabled={isLoading}
             aria-describedby={errors.password ? "login-password-error" : undefined}
             {...register("password")}
           />
         </Field>
 
         {login.isError && (
-          <p role="alert" className="rounded-md border border-danger/25 bg-danger/5 px-3 py-2 text-[13px] text-danger-fg">
-            {errorMessage(login.error)}
-          </p>
+          <div
+            role="alert"
+            className="animate-fade-up rounded-md border border-danger/25 bg-danger/5 px-3 py-2.5 text-[13px] text-danger-fg"
+          >
+            <p className="font-medium">{errorMessage(login.error)}</p>
+            <p className="mt-0.5 text-[12px] text-danger-fg/70">
+              {API_MODE === "mock" ? "Try using the demo account above." : "Check your credentials and try again."}
+            </p>
+          </div>
         )}
 
-        <Button id="login-submit" type="submit" className="w-full" loading={login.isPending}>
-          Log in
+        <Button id="login-submit" type="submit" className="w-full" loading={isLoading}>
+          {isLoading ? "Signing in…" : "Log in"}
         </Button>
       </form>
 

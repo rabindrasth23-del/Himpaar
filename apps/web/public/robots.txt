@@ -1,2 +1,6 @@
 User-agent: *
-Disallow: /
+Allow: /
+Disallow: /dashboard
+Disallow: /api/
+
+Sitemap: https://himpaar.com/sitemap.xml

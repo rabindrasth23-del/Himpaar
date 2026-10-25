@@ -13,12 +13,16 @@ export function SignupPage() {
   const {
     register,
     handleSubmit,
-    formState: { errors },
+    formState: { errors, isSubmitting },
   } = useForm<SignupInput>({ resolver: zodResolver(SignupInputSchema), mode: "onTouched" });
 
   const onSubmit = handleSubmit((values) =>
-    signup.mutate(values, { onSuccess: () => navigate("/dashboard/kyc", { replace: true }) }),
+    signup.mutate(values, {
+      onSuccess: () => navigate("/dashboard/kyc", { replace: true }),
+    }),
   );
+
+  const isLoading = signup.isPending || isSubmitting;
 
   return (
     <>
@@ -32,6 +36,7 @@ export function SignupPage() {
             autoComplete="organization"
             placeholder="Everest Pixel Labs Pvt. Ltd."
             invalid={!!errors.company_name}
+            disabled={isLoading}
             aria-describedby={errors.company_name ? "signup-company-error" : undefined}
             {...register("company_name")}
           />
@@ -43,6 +48,7 @@ export function SignupPage() {
             autoComplete="email"
             placeholder="you@company.com"
             invalid={!!errors.email}
+            disabled={isLoading}
             aria-describedby={errors.email ? "signup-email-error" : undefined}
             {...register("email")}
           />
@@ -58,19 +64,23 @@ export function SignupPage() {
             type="password"
             autoComplete="new-password"
             invalid={!!errors.password}
+            disabled={isLoading}
             aria-describedby={errors.password ? "signup-password-error" : "signup-password-hint"}
             {...register("password")}
           />
         </Field>
 
         {signup.isError && (
-          <p role="alert" className="rounded-md border border-danger/25 bg-danger/5 px-3 py-2 text-[13px] text-danger-fg">
-            {errorMessage(signup.error)}
-          </p>
+          <div
+            role="alert"
+            className="animate-fade-up rounded-md border border-danger/25 bg-danger/5 px-3 py-2.5 text-[13px] text-danger-fg"
+          >
+            <p className="font-medium">{errorMessage(signup.error)}</p>
+          </div>
         )}
 
-        <Button id="signup-submit" type="submit" className="w-full" loading={signup.isPending}>
-          Create account
+        <Button id="signup-submit" type="submit" className="w-full" loading={isLoading}>
+          {isLoading ? "Creating account…" : "Create account"}
         </Button>
       </form>
 

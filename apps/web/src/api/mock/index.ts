@@ -91,7 +91,7 @@ export function resetMockStorage(
 export function createMockApi(opts: MockOptions = {}): HimpaarApi & { db: MockDb; reset: () => void } {
   const storage = opts.storage !== undefined ? opts.storage : typeof localStorage !== "undefined" ? localStorage : null;
   const db = opts.db ?? loadStoredDb(storage);
-  const latency = opts.latencyMs ?? 350;
+  const latency = opts.latencyMs ?? 80;
 
   const wait = <T>(value: T | (() => T)): Promise<T> =>
     new Promise((resolve, reject) => {
