@@ -3,6 +3,7 @@
 // which are not yet approved). Every screen builds from these.
 import {
   forwardRef,
+  useState,
   type ButtonHTMLAttributes,
   type HTMLAttributes,
   type InputHTMLAttributes,
@@ -10,7 +11,7 @@ import {
   type SelectHTMLAttributes,
   type TextareaHTMLAttributes,
 } from "react";
-import { AlertTriangle, Inbox, Loader2, RotateCw } from "lucide-react";
+import { AlertTriangle, Eye, EyeOff, Inbox, Loader2, RotateCw } from "lucide-react";
 
 export function cn(...parts: (string | false | null | undefined)[]): string {
   return parts.filter(Boolean).join(" ");
@@ -127,6 +128,32 @@ export const Input = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputE
         className={cn(controlBase, "h-9", invalid ? "border-danger" : "border-border", className)}
         {...rest}
       />
+    );
+  },
+);
+
+export const PasswordInput = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputElement> & { invalid?: boolean }>(
+  function PasswordInput({ className, invalid, ...rest }, ref) {
+    const [show, setShow] = useState(false);
+    return (
+      <div className="relative">
+        <input
+          ref={ref}
+          type={show ? "text" : "password"}
+          aria-invalid={invalid || undefined}
+          className={cn(controlBase, "h-9 pr-10", invalid ? "border-danger" : "border-border", className)}
+          {...rest}
+        />
+        <button
+          type="button"
+          tabIndex={-1}
+          onClick={() => setShow((v) => !v)}
+          className="absolute inset-y-0 right-0 flex items-center px-3 text-text-muted hover:text-text-primary transition-colors"
+          aria-label={show ? "Hide password" : "Show password"}
+        >
+          {show ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+        </button>
+      </div>
     );
   },
 );

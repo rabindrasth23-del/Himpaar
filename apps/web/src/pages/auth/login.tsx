@@ -6,7 +6,7 @@ import { FlaskConical } from "lucide-react";
 import { useLogin } from "../../api/hooks.ts";
 import { API_MODE } from "../../api/index.ts";
 import { DEMO_EMAIL, DEMO_PASSWORD } from "../../api/mock/data.ts";
-import { Button, Field, Input } from "../../components/ui.tsx";
+import { Button, Field, Input, PasswordInput } from "../../components/ui.tsx";
 import { errorMessage } from "../../components/toast.tsx";
 
 export function LoginPage() {
@@ -67,9 +67,8 @@ export function LoginPage() {
           />
         </Field>
         <Field id="login-password" label="Password" error={errors.password?.message}>
-          <Input
+          <PasswordInput
             id="login-password"
-            type="password"
             autoComplete="current-password"
             invalid={!!errors.password}
             disabled={isLoading}

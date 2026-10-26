@@ -7,7 +7,7 @@ import { Shield } from "lucide-react";
 import { useAdminLogin } from "../../api/hooks.ts";
 import { HimpaarApiError } from "../../api/types.ts";
 import { HimpaarLogo } from "../../components/brand.tsx";
-import { Button, Field, Input } from "../../components/ui.tsx";
+import { Button, Field, Input, PasswordInput } from "../../components/ui.tsx";
 
 export function AdminLoginPage() {
   const navigate = useNavigate();
@@ -67,9 +67,8 @@ export function AdminLoginPage() {
             </Field>
 
             <Field id="admin-password" label="Password" error={errors.password?.message}>
-              <Input
+              <PasswordInput
                 id="admin-password"
-                type="password"
                 autoComplete="current-password"
                 disabled={busy}
                 invalid={!!errors.password}

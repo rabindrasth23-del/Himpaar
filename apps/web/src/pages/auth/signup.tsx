@@ -3,7 +3,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Link, useNavigate } from "react-router";
 import { SignupInputSchema, type SignupInput } from "@himpaar/shared";
 import { useSignup } from "../../api/hooks.ts";
-import { Button, Field, Input } from "../../components/ui.tsx";
+import { Button, Field, Input, PasswordInput } from "../../components/ui.tsx";
 import { errorMessage } from "../../components/toast.tsx";
 
 export function SignupPage() {
@@ -59,9 +59,8 @@ export function SignupPage() {
           hint="At least 10 characters."
           error={errors.password?.message}
         >
-          <Input
+          <PasswordInput
             id="signup-password"
-            type="password"
             autoComplete="new-password"
             invalid={!!errors.password}
             disabled={isLoading}
