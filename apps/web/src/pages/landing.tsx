@@ -17,7 +17,6 @@ import {
   Building2,
   UserCheck,
   Coins,
-  Star,
   BadgeCheck,
 } from "lucide-react";
 import { HimpaarMark } from "../components/brand.tsx";
@@ -26,9 +25,9 @@ import { cn } from "../components/ui.tsx";
 /* ────────────────────────────────────────────────────────────
    Himpaar Landing Page — Wise-Inspired High-Impact Fintech
    Clean white aesthetic, bold editorial Grotesque typography,
-   energetic Wise lime (#9FE870) accents, transparent fee calculator.
+   energetic Wise lime (#9FE870) accents, illustrative fee calculator.
    Aim: International payment gateway for Nepali freelancers & IT exporters.
-   AGENTS.md §9 compliant: honest sandbox labeling, zero false claims.
+   AGENTS.md §9: honest sandbox labeling, no unverifiable claims.
    ──────────────────────────────────────────────────────────── */
 
 // ── Smooth Scroll Reveal Wrapper ────────────────────────────
@@ -229,28 +228,24 @@ function InteractiveGlobe() {
   );
 }
 
-// ── Wise-Inspired Live Transparent Rate & Fee Calculator ─────
+// ── Illustrative Rate & Fee Calculator (landing only, sample data) ─────
+// Landing-page sample values only. Real fee and FX rate come from the API.
 function WiseRateCalculator() {
   const [amountStr, setAmountStr] = useState<string>("2500");
   const [currency, setCurrency] = useState<"USD" | "EUR" | "GBP">("USD");
 
-  const rates = {
+  const sampleRates = {
     USD: 134.85,
     EUR: 146.40,
     GBP: 173.20,
   };
 
   const amount = Math.max(0, parseFloat(amountStr) || 0);
-  const rate = rates[currency];
-  const feePercent = 0.01; // 1.0% transparent fee
-  const fee = amount * feePercent;
+  const rate = sampleRates[currency];
+  const sampleFeePercent = 0.01; // illustrative demo plan fee
+  const fee = amount * sampleFeePercent;
   const netForeign = Math.max(0, amount - fee);
   const netNpr = netForeign * rate;
-
-  // Traditional bank wire comparison (Swift fee ~$45 + intermediary ~$20 + 2.5% hidden spread)
-  const legacyFxRate = rate * 0.975;
-  const legacyNetNpr = Math.max(0, (amount - 65) * legacyFxRate);
-  const savingsNpr = Math.max(0, netNpr - legacyNetNpr);
 
   return (
     <div className="w-full max-w-xl rounded-3xl border border-slate-200/90 bg-white p-6 shadow-xl shadow-slate-200/50 sm:p-8">
@@ -259,14 +254,14 @@ function WiseRateCalculator() {
         <div>
           <span className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-500">
             <Calculator className="h-3.5 w-3.5 text-slate-700" />
-            Transparent Fee Engine
+            Fee Engine
           </span>
           <h3 className="mt-1 font-display text-xl font-extrabold text-slate-900 sm:text-2xl">
-            Live Settlement Estimator
+            Settlement Estimator
           </h3>
         </div>
-        <div className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700 border border-emerald-200">
-          Zero Hidden Spread
+        <div className="rounded-full bg-amber-50 px-3 py-1 text-xs font-bold text-amber-800 border border-amber-200">
+          Illustrative
         </div>
       </div>
 
@@ -327,7 +322,7 @@ function WiseRateCalculator() {
           <div className="relative">
             <span className="absolute -left-[31px] top-1 h-3 w-3 rounded-full border-2 border-white bg-slate-400" />
             <div className="flex justify-between items-center">
-              <span className="font-medium text-slate-700">1.0% Transparent Himpaar Fee</span>
+              <span className="font-medium text-slate-700">Himpaar fee (demo plan)</span>
               <span className="font-mono font-bold text-slate-900">
                 -{currency} {fee.toFixed(2)}
               </span>
@@ -347,7 +342,7 @@ function WiseRateCalculator() {
           <div className="relative">
             <span className="absolute -left-[31px] top-1 h-3 w-3 rounded-full border-2 border-white bg-[#9FE870]" />
             <div className="flex justify-between items-center">
-              <span className="font-bold text-slate-900">Guaranteed Mid-Market Exchange Rate</span>
+              <span className="font-bold text-slate-900">Exchange rate (simulated)</span>
               <span className="font-mono font-extrabold text-blue-600">
                 1 {currency} = {rate.toFixed(2)} NPR
               </span>
@@ -373,31 +368,10 @@ function WiseRateCalculator() {
           </div>
         </div>
 
-        {/* Payout Bank Support Note */}
-        <div className="flex items-center justify-between rounded-xl bg-slate-50 px-3.5 py-2.5 text-xs text-slate-600">
-          <span className="font-medium">Direct Settlement into:</span>
-          <span className="font-semibold text-slate-800">
-            Nabil • NIC Asia • Global IME • eSewa • Khalti
-          </span>
+        {/* Sample data note */}
+        <div className="rounded-xl bg-amber-50 border border-amber-200 px-3.5 py-2.5 text-xs text-amber-900">
+          Illustrative rates. Sample data, simulated. Not a quote.
         </div>
-
-        {/* Savings Alert Banner */}
-        {savingsNpr > 0 && (
-          <div className="rounded-2xl bg-[#9FE870]/20 border border-[#9FE870] p-4 text-xs">
-            <div className="flex items-center justify-between font-bold text-[#163300]">
-              <span className="flex items-center gap-1.5">
-                <Sparkles className="h-4 w-4 text-emerald-700" />
-                Estimated Exporter Savings:
-              </span>
-              <span className="text-sm font-black font-mono">
-                +रू {savingsNpr.toLocaleString("en-US", { maximumFractionDigits: 0 })} NPR
-              </span>
-            </div>
-            <p className="mt-1 text-[11px] text-slate-600">
-              Versus traditional correspondent bank wires charging ~$65 in fixed fees + 2.5% hidden FX markup.
-            </p>
-          </div>
-        )}
 
         {/* CTA Button */}
         <div className="pt-2">
@@ -409,7 +383,7 @@ function WiseRateCalculator() {
             <ArrowRight className="h-4 w-4" />
           </Link>
           <p className="mt-2 text-center text-[11px] text-slate-400">
-            Simulated sandbox environment • Zero real funds moved • 100% compliant export docs
+            Simulated sandbox environment • No real funds moved
           </p>
         </div>
       </div>
@@ -509,7 +483,7 @@ function HeroPipelineInteractive() {
               <div className="flex items-center justify-between">
                 <div>
                   <span className="text-xs font-bold uppercase tracking-wider text-emerald-600">
-                    NPR Bank Settlement
+                    NPR Settlement (simulated)
                   </span>
                   <h4 className="mt-0.5 text-lg font-bold text-slate-900">Everest Pixel Labs Pvt. Ltd.</h4>
                 </div>
@@ -519,13 +493,13 @@ function HeroPipelineInteractive() {
               </div>
 
               <div className="rounded-2xl border border-emerald-200 bg-emerald-50/50 p-4">
-                <div className="text-xs text-emerald-800 font-semibold">Net Credited in NPR (1 USD = 134.85 NPR)</div>
+                <div className="text-xs text-emerald-800 font-semibold">Net credited in NPR (sample rate 1 USD = 134.85 NPR)</div>
                 <div className="mt-1 font-display text-3xl font-black text-slate-900 tabular-nums">
                   रू 320,403.60
                 </div>
                 <div className="mt-1 flex items-center gap-1.5 text-xs text-emerald-700">
                   <BadgeCheck className="h-3.5 w-3.5" />
-                  Direct payout to Nabil Bank Ltd • A/C ••••8912
+                  Payout to sample bank account • A/C ••••8912 (simulated)
                 </div>
               </div>
 
@@ -535,12 +509,12 @@ function HeroPipelineInteractive() {
                   <span className="font-mono font-bold text-slate-900">$2,400.00</span>
                 </div>
                 <div className="flex justify-between">
-                  <span>Himpaar Platform Fee (1.0%):</span>
+                  <span>Himpaar fee (demo plan):</span>
                   <span className="font-mono text-slate-600">-$24.00</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Settlement status:</span>
-                  <span className="font-bold text-emerald-600">Instant Automated Credit</span>
+                  <span className="font-bold text-emerald-600">Settled (simulated)</span>
                 </div>
               </div>
             </div>
@@ -551,7 +525,7 @@ function HeroPipelineInteractive() {
               <div className="flex items-center justify-between">
                 <div>
                   <span className="text-xs font-bold uppercase tracking-wider text-purple-600">
-                    Official Tax Proof Document
+                    Settlement advice (simulated)
                   </span>
                   <h4 className="mt-0.5 text-base font-bold text-slate-900">Settlement Advice</h4>
                 </div>
@@ -574,13 +548,13 @@ function HeroPipelineInteractive() {
                   <span className="font-mono font-bold text-slate-900">601928374</span>
                 </div>
                 <div className="flex justify-between text-slate-700">
-                  <span>IRD 5% Withholding Track:</span>
-                  <span className="font-bold text-emerald-600">Compliant Export Invoice</span>
+                  <span>Document type:</span>
+                  <span className="font-bold text-slate-900">Sample settlement advice</span>
                 </div>
               </div>
 
               <div className="rounded-xl border border-dashed border-slate-300 p-2.5 text-center text-xs font-bold text-slate-700">
-                📄 Stamped and signed audit receipt ready for IRD tax filing
+                Sample document. Not a tax document and not for tax filing.
               </div>
             </div>
           )}
@@ -589,10 +563,10 @@ function HeroPipelineInteractive() {
         {/* Footer */}
         <div className="flex items-center justify-between border-t border-slate-100 bg-slate-50/50 px-5 py-3 text-xs text-slate-500">
           <span className="flex items-center gap-1.5 font-semibold text-slate-700">
-            <ShieldCheck className="h-4 w-4 text-emerald-600" />
-            Verified Sandbox Pipeline
+            <ShieldCheck className="h-4 w-4 text-amber-600" />
+            Sample data, simulated
           </span>
-          <span className="text-slate-400">Zero real financial risk</span>
+          <span className="text-slate-400">No real funds moved</span>
         </div>
       </div>
     </div>
@@ -863,18 +837,18 @@ function SettlementAdviceShowcase() {
         <div>
           <span className="inline-flex items-center gap-1 text-xs font-bold uppercase tracking-wider text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
             <FileText className="h-3.5 w-3.5" />
-            Audit-Ready Exporter Documents
+            Sample data, simulated
           </span>
           <h2
             className="mt-3 text-3xl font-black tracking-tight text-slate-900 sm:text-4xl"
             style={{ fontFamily: "var(--font-display)" }}
           >
-            Dual-calendar settlement advice for tax and audit
+            Dual-calendar settlement advice (simulated)
           </h2>
           <p className="mt-4 text-base leading-relaxed text-slate-600">
-            Every cross-border settlement automatically generates a verifiable Himpaar Settlement Advice.
-            Timestamped in both Bikram Sambat (BS) and Gregorian (AD) calendars, complete with exchange rates,
-            PAN, and foreign remitter details accepted by Nepali auditors and chartered accountants.
+            Each simulated settlement generates a sample Himpaar Settlement Advice, dated in both
+            Bikram Sambat (BS) and Gregorian (AD) calendars, with the exchange rate, PAN, and remitter details.
+            It is a sandbox preview, not a tax document.
           </p>
         </div>
 
@@ -923,8 +897,8 @@ function SettlementAdviceShowcase() {
         <div className="space-y-3 pt-2">
           {[
             "Bikram Sambat (BS 2083) and Gregorian (AD 2026) dual timestamping",
-            "Transparent exchange rate & foreign currency audit trail",
-            "Designed for Inland Revenue Department (IRD) 5% export withholding clearance",
+            "Exchange rate and foreign currency audit trail (simulated)",
+            "Sample document only. Not for tax filing.",
             "Downloadable in PDF and JSON formats directly from merchant dashboard",
           ].map((item, idx) => (
             <div key={idx} className="flex items-start gap-2.5 text-sm text-slate-700">
@@ -945,7 +919,7 @@ function SettlementAdviceShowcase() {
               <div>
                 <h4 className="font-display text-base font-bold text-slate-900">Himpaar Settlement Advice</h4>
                 <p className="text-[11px] font-bold text-rose-600">
-                  SIMULATED SANDBOX PREVIEW • NOT AN OFFICIAL BANK NOTICE
+                  SAMPLE DATA, SIMULATED • NOT A BANK NOTICE
                 </p>
               </div>
             </div>
@@ -989,11 +963,11 @@ function SettlementAdviceShowcase() {
               <span className="font-mono font-bold text-slate-900">{current.grossUsd}</span>
             </div>
             <div className="flex justify-between text-slate-600">
-              <span>Himpaar Platform Fee (1.00%)</span>
+              <span>Himpaar fee (demo plan)</span>
               <span className="font-mono text-slate-700">-{current.feeUsd}</span>
             </div>
             <div className="flex justify-between text-slate-600">
-              <span>Verified Rate Benchmark</span>
+              <span>Exchange rate (simulated)</span>
               <span className="font-mono text-slate-700">{current.rate}</span>
             </div>
             <div className="flex items-center justify-between border-t border-slate-200 pt-3 text-sm">
@@ -1005,76 +979,14 @@ function SettlementAdviceShowcase() {
           </div>
 
           {/* Verification stamp */}
-          <div className="mt-6 flex items-center justify-between rounded-xl border border-emerald-200 bg-emerald-50 px-3.5 py-2.5 text-[11px] text-emerald-800">
+          <div className="mt-6 flex items-center justify-between rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-2.5 text-[11px] text-amber-900">
             <span className="flex items-center gap-1.5 font-bold">
-              <BadgeCheck className="h-4 w-4 text-emerald-600" />
-              Cryptographically Verified Sandbox Ledger
+              <BadgeCheck className="h-4 w-4 text-amber-600" />
+              Sample data, simulated
             </span>
-            <span className="font-mono text-[10px] font-bold text-emerald-700">Status: Settled</span>
+            <span className="font-mono text-[10px] font-bold text-amber-800">Status: Settled (simulated)</span>
           </div>
         </div>
-      </div>
-    </div>
-  );
-}
-
-// ── Competitive Comparison Matrix (SWIFT vs Third-Party vs Himpaar) ─
-function CompetitiveMatrix() {
-  return (
-    <div className="mx-auto max-w-5xl overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-xl">
-      <div className="overflow-x-auto">
-        <table className="w-full text-left text-sm text-slate-600">
-          <thead className="bg-slate-900 text-xs font-bold uppercase tracking-wider text-white">
-            <tr>
-              <th className="py-5 px-6">Feature / Capability</th>
-              <th className="py-5 px-6 bg-[#9FE870] text-[#163300] font-black text-sm">Himpaar Rail</th>
-              <th className="py-5 px-6 text-slate-300">Traditional Bank SWIFT</th>
-              <th className="py-5 px-6 text-slate-300">Third-Party Wallets</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            <tr className="hover:bg-slate-50/70 transition-colors">
-              <td className="py-4 px-6 font-bold text-slate-900">Foreign Client Payment Link</td>
-              <td className="py-4 px-6 font-bold text-slate-900 bg-emerald-50/40">
-                ✓ Instant 1-click shareable link
-              </td>
-              <td className="py-4 px-6 text-slate-500">Manual SWIFT wire instructions</td>
-              <td className="py-4 px-6 text-slate-500">Requires client registration</td>
-            </tr>
-            <tr className="hover:bg-slate-50/70 transition-colors">
-              <td className="py-4 px-6 font-bold text-slate-900">Fee Transparency</td>
-              <td className="py-4 px-6 font-extrabold text-emerald-700 bg-emerald-50/40">
-                1.0% Flat & Transparent
-              </td>
-              <td className="py-4 px-6 text-rose-600 font-semibold">$35–$65 wire fee + 2.5% FX markup</td>
-              <td className="py-4 px-6 text-rose-600 font-semibold">2% conversion + up to 4% card fee</td>
-            </tr>
-            <tr className="hover:bg-slate-50/70 transition-colors">
-              <td className="py-4 px-6 font-bold text-slate-900">Settlement Speed</td>
-              <td className="py-4 px-6 font-bold text-slate-900 bg-emerald-50/40">
-                Same-Day Direct Bank Credit
-              </td>
-              <td className="py-4 px-6 text-slate-500">4 to 7 business days</td>
-              <td className="py-4 px-6 text-slate-500">2 to 4 business days</td>
-            </tr>
-            <tr className="hover:bg-slate-50/70 transition-colors">
-              <td className="py-4 px-6 font-bold text-slate-900">Bikram Sambat (BS) Tax Proof</td>
-              <td className="py-4 px-6 font-extrabold text-emerald-700 bg-emerald-50/40">
-                ✓ Auto Dual BS 2083 + AD Advice Doc
-              </td>
-              <td className="py-4 px-6 text-rose-600 font-semibold">Manual bank visits & FIRC paperwork</td>
-              <td className="py-4 px-6 text-slate-400">Foreign statement without BS dates</td>
-            </tr>
-            <tr className="hover:bg-slate-50/70 transition-colors">
-              <td className="py-4 px-6 font-bold text-slate-900">Developer SDK & Webhooks</td>
-              <td className="py-4 px-6 font-bold text-slate-900 bg-emerald-50/40">
-                ✓ TypeScript SDK & Signed Webhooks
-              </td>
-              <td className="py-4 px-6 text-slate-400">None (100% offline manual)</td>
-              <td className="py-4 px-6 text-slate-400">Complex proprietary enterprise API</td>
-            </tr>
-          </tbody>
-        </table>
       </div>
     </div>
   );
@@ -1087,27 +999,27 @@ function FaqSection() {
   const faqs = [
     {
       q: "What is Himpaar and who is it built for?",
-      a: "Himpaar is an international payment gateway specifically engineered for Nepali IT software companies, agencies, remote freelancers, and export businesses. We allow you to generate shareable foreign-currency payment links in USD, EUR, and GBP. When your foreign clients pay, funds are converted at mid-market rates and settled directly in NPR into your local Nepali commercial bank account, accompanied by an automated, audit-ready Settlement Advice document.",
+      a: "Himpaar is a sandbox preview of a payment-link product for Nepali IT companies, agencies, freelancers, and exporters. You can create payment links in USD, EUR, and GBP, simulate a client checkout, and see how a simulated NPR settlement and settlement advice would look. No real money moves.",
     },
     {
-      q: "How does Himpaar solve the current banking hurdles for Nepali exporters?",
-      a: "Nepali exporters currently lose up to 5% to 7% of their hard-earned income to intermediary SWIFT correspondent fees, high conversion spreads, and foreign wallet withdrawal charges. Furthermore, proving foreign export income to Nepali tax authorities (IRD) requires painful manual bank visits. Himpaar replaces this with a 1.0% transparent fee, guaranteed mid-market FX rates, and instant Bikram Sambat settlement advice documents.",
+      q: "What problem is Himpaar exploring?",
+      a: "Nepali exporters often deal with correspondent bank deductions, currency conversion costs, and manual paperwork when receiving foreign payments. Himpaar is prototyping a simpler flow: a shareable payment link, a simulated NPR settlement, and a dual-calendar settlement advice. Fees, rates, and timings shown in the sandbox are illustrative.",
     },
     {
       q: "What is this sandbox preview?",
       a: "This sandbox preview is a complete interactive testing environment for exporters and developers. You can generate payment links, simulate foreign client card and ACH checkouts, review double-entry NPR merchant ledgers, test webhook integrations with our TypeScript SDK, and inspect generated export advice documents. No real money or bank accounts are touched.",
     },
     {
-      q: "Why are Bikram Sambat (BS) dates essential on export settlement advice?",
-      a: "Nepal's Inland Revenue Department (IRD), corporate tax laws, and Nepal Rastra Bank follow the Bikram Sambat calendar (e.g. FY 2083/84). Himpaar natively stamps all settlement records with both Bikram Sambat (BS) and Gregorian (AD) dates, making tax filing and claiming the 5% final withholding tax deduction completely seamless.",
+      q: "Why show Bikram Sambat (BS) dates on settlement advice?",
+      a: "Bikram Sambat is the calendar used for fiscal years in Nepal (e.g. FY 2083/84). Himpaar's simulated settlement advice shows both BS and Gregorian (AD) dates so records line up with local bookkeeping. The sandbox documents are samples, not tax documents.",
     },
     {
       q: "Which Nepali banks are supported for NPR payout?",
-      a: "In our banking architecture model, NPR settlements can be routed directly to any licensed Class 'A' commercial bank in Nepal (including Nabil Bank, NIC Asia Bank, Global IME Bank, Himalayan Bank, Sanima Bank, etc.) as well as licensed digital wallets like eSewa and Khalti.",
+      a: "None yet. Himpaar is a sandbox and has no bank integrations. Payouts in the sandbox go to sample bank accounts and are simulated.",
     },
     {
       q: "Can developers integrate Himpaar via API into their SaaS or agency platform?",
-      a: "Yes. Himpaar provides the @himpaar/sdk library for TypeScript and Node.js, standard REST endpoints, and HMAC-SHA256 cryptographically signed webhooks. You can dynamically create links and automate ERP reconciliation in under an afternoon.",
+      a: "Yes. The sandbox includes the @himpaar/sdk library for TypeScript and Node.js, REST endpoints, and HMAC-SHA256 signed webhooks so you can create links and test reconciliation flows.",
     },
   ];
 
@@ -1231,16 +1143,13 @@ export function LandingPage() {
           <div className="flex justify-center mb-8">
             <Reveal>
               <div className="inline-flex flex-wrap items-center justify-center gap-3 rounded-full border border-slate-200 bg-slate-50/80 px-4 py-1.5 text-xs font-bold text-slate-700 shadow-xs">
-                <span className="flex items-center gap-1 text-slate-900">
-                  <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
-                  <span>4.9 Rating</span>
-                </span>
+                <span className="text-slate-900">Sandbox preview</span>
                 <span className="text-slate-300">•</span>
-                <span>Trusted by 1,200+ Nepali IT Exporters & Freelancers</span>
+                <span>Simulated payments only</span>
                 <span className="text-slate-300">•</span>
-                <span className="text-emerald-700 flex items-center gap-1">
-                  <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
-                  NRB Sandbox Aligned
+                <span className="text-amber-700 flex items-center gap-1">
+                  <CheckCircle2 className="h-3.5 w-3.5 text-amber-600" />
+                  No real funds move
                 </span>
               </div>
             </Reveal>
@@ -1259,9 +1168,9 @@ export function LandingPage() {
 
             <Reveal delay={200}>
               <p className="mt-8 max-w-3xl mx-auto text-lg sm:text-xl leading-relaxed text-slate-600 font-medium">
-                The international payment gateway built specifically for Nepali IT companies, agencies, and freelancers.
-                Receive foreign client payments with guaranteed mid-market exchange rates, zero hidden bank fees,
-                and instant Bikram Sambat settlement advice.
+                A payment-link sandbox for Nepali IT companies, agencies, and freelancers.
+                Create links in USD, EUR, and GBP, simulate client checkout, and preview NPR settlement
+                with Bikram Sambat settlement advice.
               </p>
             </Reveal>
 
@@ -1285,7 +1194,7 @@ export function LandingPage() {
                 </a>
               </div>
               <p className="mt-3 text-xs text-slate-400 font-medium">
-                Instant 3-minute sandbox setup • No foreign bank account needed • Zero real money moved
+                Sandbox setup in minutes • No foreign bank account needed • No real money moved
               </p>
             </Reveal>
           </div>
@@ -1307,7 +1216,7 @@ export function LandingPage() {
                       Worldwide Client Inflow → Nepal NPR
                     </h4>
                     <p className="text-xs text-slate-500 max-w-xs">
-                      Accept USD, EUR, and GBP payments from clients in the US, UK, EU, and Australia with direct bank settlement.
+                      Simulate USD, EUR, and GBP payments from clients in the US, UK, EU, and Australia with simulated NPR settlement.
                     </p>
                   </div>
                 </div>
@@ -1326,11 +1235,11 @@ export function LandingPage() {
                 Designed For Nepal's Export Economy
               </span>
               <h2 className="mt-3 font-display text-3xl sm:text-5xl font-black text-slate-900 tracking-tight">
-                Empowering Nepal's $160M+ IT Exporters
+                Built for Nepal's IT Exporters
               </h2>
               <p className="mt-4 text-base sm:text-lg text-slate-600">
                 Whether you run an engineering studio in Kathmandu or freelance remotely from Pokhara,
-                Himpaar removes foreign payment roadblocks.
+                try the Himpaar payment flow in the sandbox.
               </p>
             </div>
           </Reveal>
@@ -1340,19 +1249,19 @@ export function LandingPage() {
               {
                 icon: Building2,
                 title: "Nepali IT Companies & Dev Studios",
-                desc: "Billing $5,000 to $50,000+ monthly for US and European software engineering milestones. Eliminate $65+ correspondent wire deductions on every client invoice.",
+                desc: "Billing US and European clients for software engineering milestones. Send one payment link per invoice and track each simulated settlement in NPR.",
                 tag: "Agencies & SaaS",
               },
               {
                 icon: UserCheck,
                 title: "Tech Freelancers & Remote Engineers",
-                desc: "Working with international clients via Upwork, Toptal, or direct contracts. Receive foreign currency payments directly into your Nepali bank without wallet account freeze risks.",
+                desc: "Working with international clients on direct contracts. Share a payment link and see the simulated NPR settlement in your dashboard.",
                 tag: "Remote Workers",
               },
               {
                 icon: Coins,
                 title: "Digital Creators & Goods Exporters",
-                desc: "Selling digital design assets, handicraft consignments, or consulting services abroad with automated Bikram Sambat export paperwork for hassle-free tax clearance.",
+                desc: "Selling digital assets, handicraft consignments, or consulting services abroad, with sample dual-calendar settlement advice for your records.",
                 tag: "Creators & Goods",
               },
             ].map((persona, idx) => (
@@ -1371,7 +1280,7 @@ export function LandingPage() {
                     <p className="mt-3 text-sm leading-relaxed text-slate-600">{persona.desc}</p>
                   </div>
                   <div className="mt-6 pt-4 border-t border-slate-100 flex items-center text-xs font-bold text-slate-900">
-                    <span>Instant Link Creation Available</span>
+                    <span>Try it in the sandbox</span>
                     <ArrowRight className="h-3.5 w-3.5 ml-1.5 text-emerald-600" />
                   </div>
                 </div>
@@ -1387,13 +1296,13 @@ export function LandingPage() {
           <Reveal>
             <div className="text-center max-w-3xl mx-auto">
               <span className="text-xs font-bold uppercase tracking-wider text-emerald-700 bg-emerald-50 px-3.5 py-1 rounded-full border border-emerald-200">
-                Simple & Transparent
+                Three Steps
               </span>
               <h2 className="mt-3 font-display text-3xl sm:text-5xl font-black text-slate-900 tracking-tight">
                 How Himpaar Works
               </h2>
               <p className="mt-4 text-base sm:text-lg text-slate-600">
-                From foreign invoice generation to local Nepali bank deposit in three frictionless steps.
+                From payment link to simulated NPR settlement in three steps.
               </p>
             </div>
           </Reveal>
@@ -1402,18 +1311,18 @@ export function LandingPage() {
             {[
               {
                 num: "01",
-                title: "Generate a 1-Minute Payment Link",
-                desc: "Specify your invoice amount in USD, EUR, or GBP, set your client's name and milestone description, and get a secure shareable link.",
+                title: "Create a Payment Link",
+                desc: "Specify your invoice amount in USD, EUR, or GBP, set your client's name and milestone description, and get a shareable link.",
               },
               {
                 num: "02",
-                title: "Foreign Client Pays in Their Currency",
-                desc: "Your international client pays seamlessly with their domestic cards or bank transfer. They don't need a Nepali bank account or complex wire forms.",
+                title: "Client Pays in Their Currency (simulated)",
+                desc: "Your client opens the link and completes a simulated card or bank transfer checkout. No Nepali bank account or wire form needed on their side.",
               },
               {
                 num: "03",
-                title: "Direct NPR Bank Settlement & Tax Advice",
-                desc: "Funds are converted at the transparent mid-market rate and deposited directly into your Nepali bank. Download automated Bikram Sambat settlement advice.",
+                title: "NPR Settlement & Settlement Advice (simulated)",
+                desc: "The sandbox converts at a simulated exchange rate, records an NPR settlement in the ledger, and produces a sample Bikram Sambat settlement advice.",
               },
             ].map((step, idx) => (
               <Reveal key={idx} delay={idx * 120}>
@@ -1446,29 +1355,6 @@ export function LandingPage() {
         </div>
       </section>
 
-      {/* ── COMPETITIVE INFRASTRUCTURE MATRIX ────────────────── */}
-      <section className="bg-white py-24 sm:py-32 border-t border-slate-100">
-        <div className="mx-auto max-w-7xl px-5 sm:px-8">
-          <Reveal>
-            <div className="text-center max-w-3xl mx-auto mb-14">
-              <span className="text-xs font-bold uppercase tracking-wider text-emerald-700 bg-emerald-50 px-3.5 py-1 rounded-full border border-emerald-200">
-                Transparent Comparison
-              </span>
-              <h2 className="mt-3 font-display text-3xl sm:text-5xl font-black text-slate-900 tracking-tight">
-                Himpaar vs Traditional Export Rails
-              </h2>
-              <p className="mt-4 text-base sm:text-lg text-slate-600">
-                Engineered specifically to solve the hidden wire fees and Bikram Sambat tax hurdles faced by Nepali tech exporters.
-              </p>
-            </div>
-          </Reveal>
-
-          <Reveal delay={150}>
-            <CompetitiveMatrix />
-          </Reveal>
-        </div>
-      </section>
-
       {/* ── DEVELOPER SDK SECTION (Clean High Contrast) ─────── */}
       <section id="developers" className="bg-[#080c16] py-24 sm:py-32 text-white">
         <div className="mx-auto max-w-7xl px-5 sm:px-8">
@@ -1494,34 +1380,33 @@ export function LandingPage() {
         </div>
       </section>
 
-      {/* ── NRB & COMPLIANCE ALIGNMENT (PRD §9) ──────────────── */}
+      {/* ── SANDBOX STATUS (AGENTS.md §9) ─────────────────────── */}
       <section className="bg-white py-20 sm:py-28 border-t border-slate-100">
         <div className="mx-auto max-w-5xl px-5 sm:px-8">
           <Reveal>
             <div className="rounded-3xl border border-slate-200 bg-slate-50/60 p-8 sm:p-12 shadow-xs">
               <div className="flex items-center gap-3 mb-4">
-                <ShieldCheck className="h-6 w-6 text-emerald-700" />
+                <ShieldCheck className="h-6 w-6 text-amber-600" />
                 <h3 className="font-display text-2xl font-black text-slate-900">
-                  Regulatory Integrity & Compliance Alignment
+                  Sandbox Status
                 </h3>
               </div>
               <p className="text-sm leading-relaxed text-slate-600">
-                Himpaar is designed from day one to operate in strict alignment with Nepal Rastra Bank's Payment Systems Department directives.
-                Under our architecture, funds are held and converted by authorized licensed commercial banking partners.
-                All transactions generate verifiable settlement records to support Nepal's formal IT export economy.
+                Himpaar is a sandbox preview. It does not hold, convert, or move real money, and it has no
+                bank or regulator approvals. Every payment, exchange rate, settlement, and document you see is simulated.
               </p>
               <div className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4 border-t border-slate-200 text-xs">
                 <div>
-                  <span className="font-bold text-slate-900 block">Bank-Partner Held Funds</span>
-                  <span className="text-slate-500">Funds held & converted by licensed partner banks</span>
+                  <span className="font-bold text-slate-900 block">Simulated Funds Only</span>
+                  <span className="text-slate-500">No real cards are charged and no money is held</span>
                 </div>
                 <div>
-                  <span className="font-bold text-slate-900 block">NRB Sandbox Ready</span>
-                  <span className="text-slate-500">Structured for NRB's fintech testing sandbox</span>
+                  <span className="font-bold text-slate-900 block">No Bank Integrations</span>
+                  <span className="text-slate-500">Payouts go to sample accounts in the sandbox</span>
                 </div>
                 <div>
-                  <span className="font-bold text-slate-900 block">Full AML Audit Logging</span>
-                  <span className="text-slate-500">Append-only ledger with automated compliance checks</span>
+                  <span className="font-bold text-slate-900 block">Append-Only Ledger</span>
+                  <span className="text-slate-500">Double-entry ledger records every simulated movement</span>
                 </div>
               </div>
             </div>
@@ -1589,7 +1474,7 @@ export function LandingPage() {
               </div>
 
               <p className="mt-5 text-xs text-slate-500 font-medium">
-                No real money moved • No foreign bank account required • Instant developer keys
+                No real money moved • No foreign bank account required • Sandbox developer keys
               </p>
             </div>
           </Reveal>
@@ -1619,7 +1504,7 @@ export function LandingPage() {
                   Kathmandu, Nepal
                 </span>
                 <span className="inline-flex items-center rounded-full bg-emerald-500/20 px-3 py-1 text-[11px] font-mono text-emerald-400 border border-emerald-500/30">
-                  ● Sandbox Live
+                  ● Sandbox preview
                 </span>
               </div>
             </div>
@@ -1671,8 +1556,8 @@ export function LandingPage() {
                 <strong>LEGAL & REGULATORY NOTICE (AGENTS.md §9):</strong> Himpaar is currently in sandbox preview mode.
                 All payments, foreign exchange conversions, settlement transactions, and export documents are strictly
                 simulated for demonstration and integration testing purposes. No real funds or fiat currency move.
-                Himpaar is not licensed as a payment service operator (PSO) or payment service provider (PSP) by Nepal Rastra Bank,
-                and does not hold commercial banking partnerships.
+                Himpaar is not a payment service operator (PSO) or payment service provider (PSP),
+                holds no approval from Nepal's central bank, and has no commercial banking relationships.
               </p>
             </div>
             <div className="mt-6 flex flex-col items-center justify-between gap-4 text-xs text-slate-500 sm:flex-row">

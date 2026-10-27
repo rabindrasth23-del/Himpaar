@@ -174,7 +174,7 @@ export function SettingsPage() {
                     <CheckCircle2 className="h-4 w-4 text-text-secondary" />
                     <p className="text-sm font-medium text-text-primary">Settlement documents</p>
                   </div>
-                  <p className="text-xs text-text-secondary">Notify when official Settlement Advice (BS/AD) is generated.</p>
+                  <p className="text-xs text-text-secondary">Notify when Settlement Advice (BS/AD) is generated (simulated).</p>
                 </div>
                 <button
                   type="button"

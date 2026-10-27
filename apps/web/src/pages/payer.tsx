@@ -37,7 +37,7 @@ const METHODS: {
 }[] = [
   { id: "card", label: "Credit or Debit Card", sublabel: "Visa, Mastercard, Amex (simulated)", icon: CreditCard },
   { id: "ach", label: "US Bank Transfer (ACH)", sublabel: "Direct debit for US clients", icon: Building },
-  { id: "sepa", label: "Euro Bank Transfer (SEPA)", sublabel: "Zero-fee Eurozone transfer", icon: Globe2 },
+  { id: "sepa", label: "Euro Bank Transfer (SEPA)", sublabel: "Eurozone bank transfer (simulated)", icon: Globe2 },
   { id: "swift", label: "International Wire (SWIFT)", sublabel: "Standard international bank wire", icon: FileText },
 ];
 
@@ -80,17 +80,17 @@ export function PayerPage() {
             <HimpaarMark className="h-7 w-7" />
             <span className="font-display text-lg font-bold tracking-tight text-white">Himpaar</span>
             <span className="rounded-md bg-brand-500/20 px-2 py-0.5 text-[10px] font-semibold text-brand-300 uppercase">
-              Secure Checkout
+              Checkout (simulated)
             </span>
           </Link>
-          <div className="flex items-center gap-2 text-xs text-slate-400">
-            <Lock className="h-3.5 w-3.5 text-emerald-400" />
-            <span>256-bit Encrypted</span>
+          <div className="flex items-center gap-2 text-xs text-amber-300">
+            <Lock className="h-3.5 w-3.5" />
+            <span>Test mode</span>
           </div>
         </div>
 
         {/* Loading / Error states */}
-        {isLoading && <PageSkeleton label="Loading secure invoice checkout" rows={4} />}
+        {isLoading && <PageSkeleton label="Loading checkout" rows={4} />}
         {isError && <ErrorState error={error} />}
         {!isLoading && !isError && !link && (
           <Card className="mx-auto max-w-lg py-12 text-center bg-slate-800 border-slate-700">
@@ -132,11 +132,11 @@ export function PayerPage() {
                     </div>
                     <div className="flex justify-between text-slate-400">
                       <span>Settlement Status:</span>
-                      <span className="text-emerald-400 font-semibold">● Settled to NPR Holding</span>
+                      <span className="text-emerald-400 font-semibold">● Settled (simulated)</span>
                     </div>
                     <div className="flex justify-between text-slate-400">
-                      <span>Compliance Document:</span>
-                      <span className="text-brand-300">Settlement Advice Generated (BS 2082)</span>
+                      <span>Document:</span>
+                      <span className="text-brand-300">Settlement advice (simulated)</span>
                     </div>
                   </div>
                 </>
@@ -157,7 +157,7 @@ export function PayerPage() {
                   </div>
                   <h2 className="font-display text-2xl font-bold text-white">Payment Pending (Simulated)</h2>
                   <p className="mt-2 text-sm text-slate-300">
-                    Simulated payment authorization submitted. Awaiting bank partner confirmation.
+                    Simulated payment submitted. Awaiting simulated confirmation.
                   </p>
                 </>
               ) : (
@@ -241,15 +241,15 @@ export function PayerPage() {
                   </div>
                 </div>
 
-                {/* Trust Credentials */}
+                {/* Sandbox notice */}
                 <div className="mt-6 border-t border-slate-800 pt-5 space-y-2.5 text-[11px] text-slate-400">
                   <div className="flex items-center gap-2">
-                    <ShieldCheck className="h-4 w-4 text-emerald-400" />
-                    <span>Nepal Rastra Bank compliant export remittance flow</span>
+                    <ShieldCheck className="h-4 w-4 text-amber-400" />
+                    <span>Sandbox checkout. No real money moves.</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Lock className="h-4 w-4 text-emerald-400" />
-                    <span>Automated Settlement Advice generated upon completion</span>
+                    <Lock className="h-4 w-4 text-amber-400" />
+                    <span>Settlement advice (simulated) generated on completion</span>
                   </div>
                 </div>
               </div>
@@ -373,7 +373,7 @@ export function PayerPage() {
                       <div className="rounded-xl border border-slate-700 bg-slate-900/60 p-4 text-xs text-slate-300 space-y-1.5">
                         <div className="font-semibold text-white">Simulated {METHOD_LABEL[method]} Pipeline:</div>
                         <p className="text-slate-400">
-                          Funds routed through Himpaar partner bank escrow holding account and converted to NPR automatically upon receipt.
+                          No funds move. The sandbox records a simulated NPR settlement in the ledger.
                         </p>
                       </div>
                     )}
@@ -430,7 +430,7 @@ export function PayerPage() {
         {/* Footer info */}
         <div className="mt-12 border-t border-slate-800 pt-6 text-center text-xs text-slate-500">
           <p>
-            Himpaar Sandbox Gateway • Automated NPR Exporter Settlement & Compliance Architecture • Kathmandu, Nepal
+            Himpaar Sandbox • Simulated checkout • Kathmandu, Nepal
           </p>
         </div>
       </div>

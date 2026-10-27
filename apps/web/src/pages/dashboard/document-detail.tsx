@@ -28,7 +28,7 @@ export function DocumentDetailPage() {
     const lines = [
       doc.title,
       "",
-      "SIMULATED – NOT AN OFFICIAL DOCUMENT",
+      "SIMULATED – NOT A REAL DOCUMENT",
       "========================================",
       "",
       `Merchant:            ${doc.merchant_name}`,
@@ -49,7 +49,7 @@ export function DocumentDetailPage() {
       `SHA-256:             ${doc.sha256}`,
       "",
       "========================================",
-      "SIMULATED – NOT AN OFFICIAL DOCUMENT",
+      "SIMULATED – NOT A REAL DOCUMENT",
     ];
     downloadPlainText(lines.join("\n"), `settlement-advice-${doc.id.slice(0, 8)}.txt`);
     toast.info("Downloaded", "Settlement advice saved as text file (simulated).");
@@ -59,7 +59,7 @@ export function DocumentDetailPage() {
     <div>
       <PageHeader
         title={doc.title}
-        description="Simulated settlement advice — not an official document."
+        description="Simulated settlement advice — not a real document."
         back={
           <Link to="/dashboard/documents" className="inline-flex items-center gap-1 text-sm text-text-secondary hover:text-text-primary">
             <ArrowLeft className="h-3.5 w-3.5" aria-hidden /> Documents
@@ -81,7 +81,7 @@ export function DocumentDetailPage() {
       <div className="mb-6 rounded-lg border border-warning/25 bg-warning/5 px-4 py-3 text-sm">
         <p className="font-medium text-warning-fg">Simulated document</p>
         <p className="mt-0.5 text-text-secondary">
-          This is a simulated settlement advice for demo purposes. It is not an official document.
+          This is a simulated settlement advice for demo purposes. It is not a real document.
         </p>
       </div>
 
@@ -141,7 +141,7 @@ export function DocumentDetailPage() {
             <div>
               <h3 className="font-display text-base font-bold text-slate-900">{doc.title}</h3>
               <p className="text-[11px] font-semibold text-rose-600">
-                SIMULATED PREVIEW • NOT AN OFFICIAL NEPAL RASTRA BANK CERTIFICATE
+                SIMULATED PREVIEW • NOT A BANK CERTIFICATE
               </p>
             </div>
           </div>

@@ -20,7 +20,7 @@ export function DocumentsPage() {
     <div>
       <PageHeader
         title="Documents"
-        description="Simulated settlement advice PDFs. Not official documents."
+        description="Simulated settlement advice PDFs. Not real documents."
       />
       <Card>
         {docs.length === 0 ? (
