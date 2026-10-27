@@ -175,7 +175,13 @@ export function AdminLayout() {
       )}
 
       <div className="flex min-w-0 flex-1 flex-col">
-        {/* Admin banner */}
+        {/* TEST MODE sandbox banner */}
+        <div className="flex items-center justify-center gap-1.5 border-b border-amber-200 bg-amber-50 px-4 py-1.5 text-center text-xs font-medium text-amber-800">
+          <span className="inline-block h-1.5 w-1.5 rounded-full bg-amber-500" />
+          TEST MODE — Sandbox environment. All data is simulated.
+        </div>
+
+        {/* Admin console banner */}
         <div
           role="note"
           className="flex items-center justify-center gap-2 border-b border-danger/30 bg-danger/8 px-4 py-1.5 text-center text-xs text-danger-fg"
@@ -213,7 +219,7 @@ export function AdminLayout() {
               type="button"
               onClick={onLogout}
               disabled={logout.isPending}
-              className="inline-flex h-8 items-center gap-1.5 rounded-md border border-border px-2.5 text-[13px] font-medium text-slate-700 transition-colors hover:bg-slate-50"
+              className="inline-flex h-8 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md border border-border px-2.5 text-[13px] font-medium text-slate-700 transition-colors hover:bg-slate-50"
             >
               <LogOut className="h-3.5 w-3.5" aria-hidden />
               <span className="hidden sm:inline">Log out</span>

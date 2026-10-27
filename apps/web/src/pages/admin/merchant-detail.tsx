@@ -26,7 +26,7 @@ export function AdminMerchantDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const toast = useToast();
-  const { data, isLoading, isError, error, refetch } = useAdminMerchant(id!);
+  const { data, isLoading, isError, error, refetch } = useAdminMerchant(id ?? "");
   const setKyc = useAdminSetKycStatus();
   const setSuspended = useAdminSetSuspended();
   const [suspendReason, setSuspendReason] = useState("");

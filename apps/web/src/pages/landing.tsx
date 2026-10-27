@@ -182,7 +182,7 @@ function InteractiveGlobe() {
 
       {/* ALL location labels — tight around the globe */}
       {GLOBE_LOCATIONS.map((loc, i) => {
-        const pos = LABEL_POSITIONS[i]!;
+        const pos = LABEL_POSITIONS[i] ?? { top: "50%", left: "50%", delay: 0 };
         return (
           <div
             key={loc.name}

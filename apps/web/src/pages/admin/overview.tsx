@@ -9,6 +9,7 @@ import {
   ErrorState,
   PageHeader,
   PageSkeleton,
+  SimulatedTag,
   StatCard,
   StatusBadge,
   Table,
@@ -26,7 +27,11 @@ export function AdminOverviewPage() {
 
   return (
     <div>
-      <PageHeader title="Admin overview" description="Platform-wide summary across all merchants." />
+      <PageHeader
+        title="Admin overview"
+        description="Platform-wide summary across all merchants."
+        actions={<SimulatedTag label="Sandbox data" />}
+      />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
@@ -45,7 +50,7 @@ export function AdminOverviewPage() {
           }
         />
         <StatCard
-          label="Gross volume"
+          label="Gross volume (succeeded)"
           value={formatMoney(data.gross_volume.amount_minor, data.gross_volume.currency)}
           icon={<BarChart3 className="h-4 w-4" />}
           hint={`Fees earned: ${formatMoney(data.fees_earned.amount_minor, data.fees_earned.currency)}`}

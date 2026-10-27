@@ -275,7 +275,7 @@ export function StatusBadge({ status }: { status: string }) {
 }
 
 /** The "simulated" label required next to every simulated value (AGENTS.md §9). */
-export function SimulatedTag({ className }: { className?: string }) {
+export function SimulatedTag({ className, label }: { className?: string; label?: string }) {
   return (
     <span
       className={cn(
@@ -283,7 +283,7 @@ export function SimulatedTag({ className }: { className?: string }) {
         className,
       )}
     >
-      simulated
+      {label ?? "simulated"}
     </span>
   );
 }
