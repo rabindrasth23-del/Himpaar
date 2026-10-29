@@ -3,7 +3,7 @@ import { cn } from "./ui.tsx";
 export function HimpaarMark({ className, title = "Himpaar" }: { className?: string; title?: string }) {
   return (
     <img
-      src="/himpaar-mark.png"
+      src="/himpaar-mark.png?v=2"
       alt={title}
       className={cn("h-7 w-7 object-contain inline-block shrink-0 select-none", className)}
       loading="eager"
